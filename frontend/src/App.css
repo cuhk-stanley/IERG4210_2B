@@ -1,0 +1,127 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* App.css */
+.app-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1; /* Allows sidebar and main content to fill the available space */
+}
+
+/* Sidebar.css */
+.sidebar {
+  width: 200px; /* Fixed sidebar width */
+  background-color: #eee; /* Example background color */
+  height: 50%; /* Full height */
+}
+
+/* MainContent.css */
+.main-content {
+  flex-grow: 1; /* Allows main content to take up the remaining width */
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.admin-panel {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.column {
+  flex: 1; /* Makes each column take up an equal amount of space */
+  margin: 0 20px; /* Adds some space between the columns */
+}
+
+/* Optional: Adjusts the layout on smaller screens */
+@media (max-width: 768px) {
+  .admin-panel {
+      flex-direction: column;
+  }
+  .column {
+      margin: 20px 0; /* Stacks the columns with vertical space between */
+  }
+}
+
+/* Form group styling for vertical layout */
+.form-group {
+  margin-bottom: 15px; /* Adds space between each form field */
+}
+
+/* Modern button styling */
+.btn {
+  display: inline-block;
+  padding: 10px 20px;
+  margin-top: 10px; /* Adds some space above the button */
+  font-size: 16px;
+  border: none;
+  border-radius: 5px; /* Rounded corners for a modern look */
+  background-color: #007bff; /* A pleasant blue; adjust as needed */
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+}
+
+.btn:hover {
+  background-color: #0056b3; /* Darker shade on hover for interactivity */
+}
+
+/* Adjustments for the form inputs for a more aligned look */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  width: 100%; /* Ensures full width to align with form layout */
+  padding: 8px;
+  margin-top: 5px; /* Adds space between label and input field */
+  border-radius: 4px; /* Slight rounding of corners for inputs */
+  border: 1px solid #ccc; /* Subtle border for inputs */
+  box-sizing: border-box; /* Ensures padding does not increase width */
+}
+
+label {
+  display: block; /* Makes label take the full width, aligning text above inputs */
+  margin-bottom: 5px; /* Space between label and input */
+}

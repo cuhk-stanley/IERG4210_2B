@@ -1,0 +1,113 @@
+/* AdminPanel.css */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+}
+
+.container {
+    max-width: 1200px; /* Adjusted for a wider layout to accommodate side-by-side sections */
+    margin: 20px auto; /* Increased top and bottom margin */
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-section {
+    margin-bottom: 40px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    margin-top: 20px;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="file"],
+select,
+textarea {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box; /* Makes sure the padding doesn't increase the width */
+}
+
+input[type="submit"] {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+.thumbnail-preview img {
+    margin-top: 20px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    padding: 5px;
+}
+
+button {
+    margin-bottom: 20px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #5a6268;
+}
+.section-title {
+    margin-top: 40px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+/* Adjusted form-section margin for closer grouping of related elements */
+.form-section {
+    flex-basis: 48%; /* Adjust this value to control the width of each form-section */
+    margin-bottom: 20px; /* Reduced margin-bottom */
+}
+
+/* Style for grouping related sections together */
+.grouped-section {
+    display: flex;
+    justify-content: space-between; /* This will space out your columns nicely */
+    gap: 20px; /* Adjust the gap between the two columns */
+    border: 1px solid #eee;
+    padding: 20px;
+    margin-bottom: 40px; /* Adjust the bottom margin for more space */
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+/* Optional: Style for a small descriptive text under each section title for clarity */
+.section-description {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 20px;
+}

@@ -1,0 +1,35 @@
+.category-list {
+    display: flex;
+    flex-wrap: wrap; /* Allows items to wrap to the next line if the container's width is exceeded */
+    justify-content: center; /* Center items horizontally, adjust as needed */
+    gap: 20px; /* Adds space between items, adjust according to your design */
+}
+
+.category-item {
+    flex: 0 1 200px; /* Flex item can grow and shrink but starts at 200px */
+    /* Additional styling for your category items */
+    display: flex; /* Makes the content of each category item use flex layout */
+    flex-direction: column; /* Aligns item content (like image and text) vertically */
+    align-items: center; /* Centers item content horizontally */
+    text-align: center; /* Ensures text within the item is centered */
+}
+
+.category-item img {
+    max-width: 100px; /* Adjust this value to make thumbnails smaller */
+    height: auto; /* Maintain aspect ratio */
+    margin-bottom: 10px;
+}
+
+.bottom-image {
+    text-align: center; /* Center the image if desired */
+    margin-top: 20px; /* Add some space above the image */
+}
+
+.bottom-image img {
+    width: 100%; /* Make image responsive */
+    max-width: 600px; /* Adjust based on your preference */
+    height: auto;
+}
+.bottom-image img:hover {
+    transform: scale(1.05); /* Slightly larger on hover */
+}

@@ -1,0 +1,55 @@
+.header, .footer {
+  width: 100%;
+  padding: 20px;
+  background-color: #333; /* Example background color */
+  color: #fff; /* Example text color */
+}
+
+.shopping-cart {
+  position: absolute;
+  top: 0; /* Position it at the top of the header */
+  right: 0; /* Position it at the right of the header */
+  width: 100px; /* Set width */
+  height: 100px; /* Set height */
+  cursor: pointer;
+  z-index: 100; /* Ensures it's above other elements */
+}
+
+.shopping-cart img {
+  max-width: 100%; /* Ensures image does not exceed the cart container */
+  max-height: 100%;
+}
+
+.shopping-list {
+  display: none;
+  position: absolute;
+  right: 0; /* Aligns the list to the right */
+  background-color: white;
+  border: 1px solid #ddd;
+  z-index: 100; /* Ensures it's above other elements */
+  width: 200px; /* Adjust as needed */
+}
+
+.shopping-cart:hover .shopping-list {
+  display: block; /* Show the list on hover */
+}
+
+.cart-item {
+  padding: 5px;
+  border-bottom: 1px solid #ddd;
+}
+
+.checkout-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  border: none;
+  cursor: pointer;
+}
+
+main {
+  display: flex;
+}

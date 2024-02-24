@@ -1,0 +1,40 @@
+.product-container {
+    width: 80%;
+    margin: 20px auto;
+}
+
+.product-layout {
+    display: flex;
+    gap: 30px; /* Reduced gap between columns */
+}
+
+.product-image img {
+    width: 100%;
+    max-width: 400px; /* Adjust based on your layout */
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+.product-details {
+    flex-grow: 1;
+    text-align: left; /* Ensure text aligns to the left */
+}
+
+.product-details h2 {
+    margin-top: 0;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}

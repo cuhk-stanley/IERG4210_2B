@@ -1,0 +1,60 @@
+/* CategoryPage.css */
+.category-container {
+    padding: 20px;
+}
+
+.products-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Adjust the gap between products as needed */
+}
+
+.product-item {
+    flex-basis: 200px; /* Adjust based on your design preference */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px; /* Space between elements within a product */
+}
+
+.product-item img {
+    width: 100px; /* Initial width */
+    height: 100px; /* Initial height */
+    transition: transform 0.3s ease; /* Smooth transition for scaling */
+}
+
+.product-item img:hover {
+    transform: scale(1.05); /* Slightly larger on hover */
+}
+
+.product-item button {
+    padding: 10px 20px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+.product-item button:hover {
+    background-color: #0056b3;
+}
+
+.products-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around; /* Adjust as needed for your design */
+    gap: 20px; /* Adjust the space between items */
+}
+
+.product-item img {
+    width: 100%; /* Make images responsive within their container */
+    height: auto;
+    /* Adjust as needed for your design */
+}
+
+.product-item h3 {
+    color: blue; /* Sets the text color to blue */
+    text-decoration: underline; /* Underlines the text */
+    cursor: pointer; /* Optional: Changes the cursor to a pointer to indicate it's clickable */
+}
