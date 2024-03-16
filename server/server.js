@@ -1,15 +1,20 @@
 const express = require('express');
 const multer = require('multer');
 const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
 const fs = require('fs');
 const app = express();
 const path = require('path');
 const port = 8000;
 const cors = require('cors');
+//const dbPath = path.resolve(__dirname, './mydatabase.db');
+const User = require('./models/user');
+const userRoutes = require('./routes/users');
 app.use(express.json());
 app.use(cors());
-
+app.use('/api/users', userRoutes);
 console.log("Current directory:", __dirname);
+const saltRounds = 10;
 
 
 // Set up storage engine for Multer
@@ -35,6 +40,64 @@ const db = new sqlite3.Database('./mydatabase.db', (err) => {
 
 
 app.use(express.urlencoded({ extended: true }));
+
+
+app.post('/register', async (req, res) => {
+    try {
+      const { email, password, username } = req.body;
+      const hashedPassword = await bcrypt.hash(password, saltRounds); // Hashing the password
+  
+      // Using Sequelize to create a new user with the hashed password
+      const newUser = await User.create({
+        email: email,
+        password: hashedPassword, // Storing the hashed password
+        username: username
+      });
+  
+      // Responding with success (don't include sensitive info in the response)
+      res.status(201).json({
+        message: 'User created successfully',
+        user: {
+          email: newUser.email,
+          username: newUser.username
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'An error occurred while creating the user' });
+    }
+  });
+
+
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+  
+    try {
+      const user = await User.findOne({ where: { email } });
+      if (!user) {
+        return res.status(401).json({ message: 'Authentication failed' });
+      }
+  
+      const match = await bcrypt.compare(password, user.password);
+      if (!match) {
+        return res.status(401).json({ message: 'Authentication failed'});
+      }
+  
+      // Your logic for successful authentication...
+      res.json({
+        message: 'Login successful',
+        user: {
+          name: user.username, // Do not return sensitive information
+          email: user.email
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'An error occurred' });
+    }
+  });
+  
+  
 
 
 // Serve HTML forms
@@ -78,7 +141,7 @@ app.get('/categories', (req, res) => {
 });
 
 app.get('/products', (req, res) => {
-    db.all("SELECT pid, name FROM products", [], (err, categories) => {
+    db.all("SELECT * FROM products", [], (err, categories) => {
         if (err) {
             console.error(err.message);
             res.status(500).send("Error retrieving categories from the database.");
@@ -182,6 +245,56 @@ app.post('/add-category', upload.single('image'), (req, res) => {
 });
 
 
+app.post('/update-category/:id', upload.single('image'), (req, res) => {
+    const { id } = req.params;
+
+    if (!req.file) {
+        return res.status(400).send('No image file provided');
+    }
+
+    if (!req.file.mimetype.startsWith('image/')) {
+        return res.status(400).send('Please upload an image file');
+    }
+
+    // Placeholder for the category name retrieval. Adjust the query as necessary for your database schema.
+    const getCategoryNameQuery = `SELECT name FROM categories WHERE catid = ?`;
+
+    db.get(getCategoryNameQuery, [id], (err, row) => {
+        if (err || !row) {
+            console.error('Error fetching category name:', err);
+            return res.status(500).send('Error fetching category name');
+        }
+
+        const categoryName = row.name;
+        const sanitizedProductName = categoryName.replace(/[^a-zA-Z0-9 ]/g, '_');
+        const originalExtension = path.extname(req.file.originalname);
+        const newFilename = `${sanitizedProductName.replace(/ /g, '_')}${originalExtension}`;
+        const targetDir = path.resolve(__dirname, '../frontend/public/image');
+        const newPath = path.join(targetDir, newFilename);
+
+        // Move and rename the file
+        fs.rename(req.file.path, newPath, (err) => {
+            if (err) {
+                console.error('Error moving the file:', err);
+                return res.status(500).send('Error processing image file');
+            }
+
+            // Update the categories table
+            const updateSql = `UPDATE categories SET image = ? WHERE catid = ?`;
+            db.run(updateSql, [newFilename, id], function(err) {
+                if (err) {
+                    console.error("Database update error:", err);
+                    return res.status(500).send(`Error updating category in the database: ${err.message}`);
+                }
+                res.status(200).json({ message: 'Category image updated successfully' });
+            });
+        });
+    });
+});
+
+
+
+
 
 
 // Endpoint to handle adding products
@@ -220,6 +333,35 @@ app.post('/add-product', upload.single('image'), (req, res) => {
 });
 
 app.use('/image', express.static(path.join(__dirname, 'public', 'image')));
+
+
+// Endpoint to update a product
+app.put('/update-product/:productId', upload.single('image'), (req, res) => {
+    const { productId } = req.params;
+    const { category, name, price, description, inventory } = req.body;
+    let imagePath = '';
+
+    if (req.file) {
+        imagePath = req.file.path; // If a new image is uploaded, use its path
+    }
+
+    const updateQuery = `UPDATE products SET name = ?, price = ?, description = ?, inventory = ? WHERE pid = ?`;
+
+    // Execute the update query, including the image path if a new image was uploaded
+    db.run(updateQuery, [name, price, description, inventory, productId], function(err) {
+        if (err) {
+            console.error("Database update error:", err);
+            return res.status(500).send(`Error updating product in the database: ${err.message}`);
+        }
+        if (this.changes > 0) {
+            res.send('Product updated successfully');
+        } else {
+            res.status(404).send('Product not found');
+        }
+    });
+});
+
+
 
 app.get('/product-image/:id', (req, res) => {
    const id = req.params.id;
@@ -288,6 +430,50 @@ app.get('/product/:productId', (req, res) => {
         }
     });
 });
+
+app.post('/checkout', async (req, res) => {
+    const { products } = req.body;
+
+    const updateInventory = (product) => {
+        return new Promise((resolve, reject) => {
+            const updateInventorySql = `UPDATE products SET inventory = inventory - ? WHERE pid = ? AND inventory >= ?`;
+            db.run(updateInventorySql, [product.quantity, product.pid, product.quantity], function(err) {
+                if (err) {
+                    return reject(err);
+                }
+                if (this.changes === 0) {
+                    return reject(new Error(`Product ${product.pid} has insufficient inventory.`));
+                }
+                resolve();
+            });
+        });
+    };
+    
+
+    db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+
+        Promise.all(products.map(product => updateInventory(product)))
+            .then(() => {
+                db.run('COMMIT', (err) => {
+                    if (err) {
+                        throw err;
+                    }
+                    res.send('Checkout successful');
+                });
+            })
+            .catch((error) => {
+                db.run('ROLLBACK', (rollbackErr) => {
+                    if (rollbackErr) {
+                        console.error("Rollback error:", rollbackErr);
+                    }
+                    console.error("Checkout error:", error);
+                    res.status(500).send(`Checkout failed: ${error.message}`);
+                });
+            });
+    });
+});
+
 
 
 

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom'; // Import Link
 import './sidebar.css';
 
 const Sidebar = () => {
@@ -18,13 +17,14 @@ const Sidebar = () => {
             <ul className="category-list">
                 {categories.map(category => (
                     <li key={category.catid}>
-                        {/* Use Link component for navigation */}
-                        <Link to={`/${category.catid}`}>{category.name}</Link>
+                        {/* Replace Link with an <a> tag */}
+                        <a href={`/${category.catid}`}>{category.name}</a>
                     </li>
                 ))}
             </ul>
         </aside>
     );
 };
+
 
 export default Sidebar;

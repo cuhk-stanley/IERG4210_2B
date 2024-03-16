@@ -1,6 +1,4 @@
-// Breadcrumb.js
 import React from 'react';
-import { Link } from 'react-router-dom';
 
 const Breadcrumb = ({ items }) => {
     return (
@@ -10,7 +8,7 @@ const Breadcrumb = ({ items }) => {
                     <React.Fragment key={index}>
                         {index !== 0 && <li style={{ margin: '0 10px' }}>/</li>}
                         <li>
-                            <Link to={item.path}>{item.label}</Link>
+                            <a href={item.path}>{item.label}</a>
                         </li>
                     </React.Fragment>
                 ))}
@@ -18,5 +16,6 @@ const Breadcrumb = ({ items }) => {
         </nav>
     );
 };
+
 
 export default Breadcrumb;

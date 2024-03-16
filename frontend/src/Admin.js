@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import './AdminPanel.css';
@@ -9,6 +8,12 @@ const AdminPanel = () => {
     const [products, setProducts] = useState([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState('');
     const [selectedProductId, setSelectedProductId] = useState('');
+    const [updateProductId, setupdateProductId] = useState('');
+    const [categoryImagePreviewUrl, setCategoryImagePreviewUrl] = useState('');
+    const [updateCategoryId, setUpdateCategoryId] = useState('');
+    const [newCategoryImage, setNewCategoryImage] = useState(null);
+    const [newCategoryImagePreviewUrl, setNewCategoryImagePreviewUrl] = useState('');
+
     const [product, setProduct] = useState({
         category: '',
         name: '',
@@ -19,13 +24,18 @@ const AdminPanel = () => {
         imagePreviewUrl: null,
     });
 
+    const [selectedProductDetails, setSelectedProductDetails] = useState({
+        name: '',
+        price: '',
+        description: '',
+        inventory: ''
+      });
+
     useEffect(() => {
         fetchCategories();
         fetchProducts();
     }, []);
-
     useEffect(() => {
-        // This cleanup function runs when the component unmounts or the image changes
         return () => {
             if (product.image) {
                 URL.revokeObjectURL(product.image);
@@ -50,7 +60,6 @@ const AdminPanel = () => {
     };
 
     const fetchProducts = async () => {
-        // Fetch products from the backend
         const response = await fetch('http://localhost:8000/products');
         const data = await response.json();
         setProducts(data);
@@ -95,6 +104,52 @@ const AdminPanel = () => {
         }
     };
 
+
+    const handleNewCategoryImageChange = (e) => {
+        if (e.target.files[0]) {
+            setNewCategoryImage(e.target.files[0]);
+            setNewCategoryImagePreviewUrl(URL.createObjectURL(e.target.files[0]));
+        }
+    };
+
+
+    const handleUpdateCategorySubmit = async (event) => {
+        event.preventDefault();
+        console.log("Updating category with ID:", updateCategoryId); // Check selected category ID
+        console.log("Image selected for update:", newCategoryImage); // Log image info
+    
+        if (!updateCategoryId) {
+            alert("Please select a category to update.");
+            return;
+        }
+    
+        if (!newCategoryImage || !newCategoryImage.type.startsWith('image/')) {
+            alert("Please select an image file for the category.");
+            return;
+        }
+    
+        const formData = new FormData();
+        formData.append("image", newCategoryImage);
+    
+        try {
+            const response = await fetch(`http://localhost:8000/update-category/${updateCategoryId}`, {
+                method: 'POST',
+                body: formData,
+            });
+    
+            const result = await response.json();
+            console.log("Response from server:", result); // Log server response
+            alert(result.message);
+            fetchCategories();
+    
+        } catch (error) {
+            console.error("Failed to update category", error);
+            alert("Failed to update category. See console for more details.");
+        }
+    };
+    
+    
+
     const handleCategorySubmit = async (e) => {
         e.preventDefault();
         const formData = new FormData();
@@ -116,7 +171,35 @@ const AdminPanel = () => {
             alert('Error adding category');
         }
     };
+    
 
+    
+    
+    
+    const handleUpdateProductSubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('name', selectedProductDetails.name);
+        formData.append('price', selectedProductDetails.price);
+        formData.append('description', selectedProductDetails.description);
+        formData.append('inventory', selectedProductDetails.inventory);
+        try {
+            const response = await fetch(`http://localhost:8000/update-product/${updateProductId}`, {
+                method: 'PUT',
+                body: formData,
+            });
+            if (!response.ok) {
+                throw new Error('Failed to update product');
+            }
+            alert('Product updated successfully');
+        } catch (error) {
+            console.error('Error updating product:', error);
+            alert('Error updating product');
+        }
+    };
+    
+    
+    
     const handleProductSubmit = async (e) => {
         e.preventDefault();
         const formData = new FormData();
@@ -153,6 +236,20 @@ const AdminPanel = () => {
             alert('Error adding product');
         }
     };
+
+
+    const handleCategoryImageChange = (e) => {
+        const file = e.target.files[0];
+    
+        if (file && file.type.startsWith('image/')) {
+            setCategoryImage(file);
+            setCategoryImagePreviewUrl(URL.createObjectURL(file));
+        } else {
+            alert('Only image files are allowed.');
+            e.target.value = null;
+        }
+    };
+    
 
     const handleImageChange = (e) => {
         const file = e.target.files[0]; // Get the selected file
@@ -194,8 +291,13 @@ const AdminPanel = () => {
                             type="file"
                             id="categoryImage"
                             name="categoryImage"
-                            onChange={(e) => setCategoryImage(e.target.files[0])}
+                            onChange={handleCategoryImageChange}
                         />
+                        {categoryImagePreviewUrl && (
+                            <div className="thumbnail-preview">
+                                <img src={categoryImagePreviewUrl} alt="Category Thumbnail Preview" style={{ maxWidth: '200px', maxHeight: '200px' }} />
+                            </div>
+                        )}
                         <input type="submit" value="Add Category" />
                     </form>
                 </div>
@@ -213,8 +315,34 @@ const AdminPanel = () => {
                         ))}
                     </select>
                     <button onClick={deleteCategory}>Delete Category</button>
-                </div>
-                
+                    </div>
+                    <div className="form-section">
+    <h2 className="section-title">Update Category Image</h2>
+    <form onSubmit={handleUpdateCategorySubmit}>
+        <select
+            value={updateCategoryId}
+            onChange={(e) => setUpdateCategoryId(e.target.value)}
+        >
+            <option value="">Select Category</option>
+            {categories.map((category) => (
+                <option key={category.catid} value={category.catid}>{category.name}</option>
+            ))}
+        </select>
+        <label htmlFor="categoryImage">Category Image:</label>
+        <input
+            type="file"
+            onChange={handleNewCategoryImageChange}
+        />
+        {newCategoryImagePreviewUrl && (
+            <div className="thumbnail-preview">
+                <img src={newCategoryImagePreviewUrl} alt="New Category Thumbnail Preview" style={{ maxWidth: '200px', maxHeight: '200px' }} />
+            </div>
+        )}
+        <button type="submit">Update Category Image</button>
+    </form>
+</div>
+
+
                 </div>
                 <div className="grouped-section">
                 <div className="form-section">
@@ -303,6 +431,60 @@ const AdminPanel = () => {
                     </select>
                     <button onClick={deleteProduct}>Delete Product</button>
                 </div>
+                <div className="form-section">
+    <h2 className="section-title">Update Product</h2>
+    <form onSubmit={handleUpdateProductSubmit}>
+    <label htmlFor="productSelection">Select Product:</label>
+    <select
+        id="productSelection"
+        value={updateProductId}
+        onChange={(e) => {
+            setupdateProductId(e.target.value);
+            const selectedProduct = products.find(product => product.pid.toString() === e.target.value);
+            if (selectedProduct) {
+                console.log(selectedProduct);
+                setSelectedProductDetails({
+                    name: selectedProduct.name,
+                    price: selectedProduct.price,
+                    description: selectedProduct.description,
+                    inventory: selectedProduct.inventory,
+                });                
+            }
+        }}
+        
+    >
+        <option value="">Select a Product</option>
+        {products.map((product) => (
+            <option key={product.pid} value={product.pid}>{product.name}</option>
+        ))}
+    </select>
+        <label htmlFor="updateProductPrice">Price:</label>
+        <input
+            type="number"
+            id="updateProductPrice"
+            name="updateProductPrice"
+            value={selectedProductDetails.price}
+            onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, price: e.target.value })}
+        />
+        <label htmlFor="updateProductDescription">Description:</label>
+        <textarea
+            id="updateProductDescription"
+            name="updateProductDescription"
+            value={selectedProductDetails.description}
+            onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, description: e.target.value })}
+        />
+        <label htmlFor="updateProductInventory">Inventory:</label>
+        <input
+            type="number"
+            id="updateProductInventory"
+            name="updateProductInventory"
+            value={selectedProductDetails.inventory}
+            onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, inventory: e.target.value })}
+        />
+        <input type="submit" value="Update Product" />
+    </form>
+</div>
+
                 </div>
             </div>
         </div>
