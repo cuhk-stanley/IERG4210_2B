@@ -80,7 +80,7 @@ const CategoryPage = () => {
     };
 
     const breadcrumbItems = [
-        { label: 'Home', path: '/' },
+        { label: 'Home', path: '/home' },
         { label: categoryNameDisplay, path: `/${categoryName}` },
     ];
 

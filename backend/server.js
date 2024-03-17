@@ -1,16 +1,20 @@
 const express = require('express');
 const multer = require('multer');
 const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
 const fs = require('fs');
 const app = express();
 const path = require('path');
 const port = 8000;
 const cors = require('cors');
 //const dbPath = path.resolve(__dirname, './mydatabase.db');
+const User = require('./models/user');
+const userRoutes = require('./routes/users');
 app.use(express.json());
 app.use(cors());
-
+app.use('/api/users', userRoutes);
 console.log("Current directory:", __dirname);
+const saltRounds = 10;
 
 
 // Set up storage engine for Multer
@@ -36,6 +40,64 @@ const db = new sqlite3.Database('./mydatabase.db', (err) => {
 
 
 app.use(express.urlencoded({ extended: true }));
+
+
+app.post('/register', async (req, res) => {
+    try {
+      const { email, password, username } = req.body;
+      const hashedPassword = await bcrypt.hash(password, saltRounds); // Hashing the password
+  
+      // Using Sequelize to create a new user with the hashed password
+      const newUser = await User.create({
+        email: email,
+        password: hashedPassword, // Storing the hashed password
+        username: username
+      });
+  
+      // Responding with success (don't include sensitive info in the response)
+      res.status(201).json({
+        message: 'User created successfully',
+        user: {
+          email: newUser.email,
+          username: newUser.username
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'An error occurred while creating the user' });
+    }
+  });
+
+
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+  
+    try {
+      const user = await User.findOne({ where: { email } });
+      if (!user) {
+        return res.status(401).json({ message: 'Authentication failed' });
+      }
+  
+      const match = await bcrypt.compare(password, user.password);
+      if (!match) {
+        return res.status(401).json({ message: 'Authentication failed'});
+      }
+  
+      // Your logic for successful authentication...
+      res.json({
+        message: 'Login successful',
+        user: {
+          name: user.username, // Do not return sensitive information
+          email: user.email
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'An error occurred' });
+    }
+  });
+  
+  
 
 
 // Serve HTML forms
