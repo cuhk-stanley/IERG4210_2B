@@ -5,7 +5,7 @@ import './maincontent.css';
 
 const MainContent = () => {
     const [categories, setCategories] = useState([]);
-    const breadcrumbItems = [{ label: 'Home', path: '/home' }];
+    const breadcrumbItems = [{ label: 'Home', path: '/' }];
 
     const handleCategoryClick = (catId) => {
         window.location = `${catId}`;
@@ -23,6 +23,7 @@ const MainContent = () => {
         <main>
             <div>
             <Breadcrumb items={breadcrumbItems} />
+            {/* Rest of your homepage content */}
             </div>
             <section className="category">
                 <h2>Categories</h2>

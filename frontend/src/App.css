@@ -13,6 +13,16 @@
   }
 }
 
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
 
 .App-link {
   color: #61dafb;
@@ -40,13 +50,14 @@
   flex: 1; /* Allows sidebar and main content to fill the available space */
 }
 
-
+/* Sidebar.css */
 .sidebar {
   width: 200px; /* Fixed sidebar width */
   background-color: #eee; /* Example background color */
   height: 50%; /* Full height */
 }
 
+/* MainContent.css */
 .main-content {
   flex-grow: 1; /* Allows main content to take up the remaining width */
   overflow-y: auto;
@@ -64,6 +75,7 @@
   margin: 0 20px; /* Adds some space between the columns */
 }
 
+/* Optional: Adjusts the layout on smaller screens */
 @media (max-width: 768px) {
   .admin-panel {
       flex-direction: column;
@@ -73,10 +85,12 @@
   }
 }
 
+/* Form group styling for vertical layout */
 .form-group {
   margin-bottom: 15px; /* Adds space between each form field */
 }
 
+/* Modern button styling */
 .btn {
   display: inline-block;
   padding: 10px 20px;
@@ -94,6 +108,7 @@
   background-color: #0056b3; /* Darker shade on hover for interactivity */
 }
 
+/* Adjustments for the form inputs for a more aligned look */
 input[type="text"],
 input[type="number"],
 textarea,

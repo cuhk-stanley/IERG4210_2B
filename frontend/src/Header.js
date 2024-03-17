@@ -1,58 +1,46 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from './CartContext';
-import { useAuth } from './AuthContext';
-import './Header.css';
+import { useCart} from './CartContext'; // Adjust the path as necessary
+
 function Header() {
-    const { cart, updateQuantity, removeFromCart, calculateTotal, checkoutCart } = useCart();
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { cart, updateQuantity, removeFromCart, calculateTotal, checkoutCart  } = useCart();
+    const goToAdminPanel = () => {
+        navigate('/admin'); // Assuming your AdminPanel route is '/admin'
+    };
 
-    const handleLogout = () => {
-        logout();
-        navigate('/');
-      };
+    const handleQuantityChange = (pid, quantity) => {
+        updateQuantity(pid, quantity);
+    };
 
-      return (
+    const handleRemoveItem = (pid) => {
+        removeFromCart(pid);
+    };
+
+    return (
         <header>
             <h1>IERG4210 phase_2 Ecommerce Site</h1>
-            <div className="header-right">
-                <div className="user-info">
-                    Welcome, {user ? user.name : 'Guest'}
-                    <div className="user-actions">
-                        {user ? (
-                            <>
-                                <button onClick={handleLogout} className="btn log-out-btn">Log out</button>
-                                <button onClick={() => navigate('/change-password')} className="btn change-password-btn">Change Password</button>
-                            </>
-                        ) : (
-                            <button onClick={handleLogout} className="btn sign-in-btn">Sign in</button>
-                        )}
-                    </div>
-                </div>
-                <div className="shopping-cart">
-                    <img src={`/image/cart.png`} alt="Cart" />
-                    <div className="shopping-list">
-                        {cart.map((item) => (
-                            <div key={item.pid} className="cart-item">
-                                <span>{item.name}</span>
-                                <input
-                                    type="number"
-                                    value={item.quantity}
-                                    onChange={(e) => updateQuantity(item.pid, parseInt(e.target.value))}
-                                />
-                                <button onClick={() => removeFromCart(item.pid)}>Remove</button>
-                            </div>
-                        ))}
-                        <div>Total: ${calculateTotal()}</div>
-                        <button className="checkout-button" onClick={checkoutCart}>Checkout</button>
-                    </div>
+            <div className="shopping-cart">
+                <span><img src={`/image/cart.png`} alt="Cart" /></span>
+                <div className="shopping-list">
+                    {cart.map((item) => (
+                        <div key={item.pid} className="cart-item">
+                            <span>{item.name}</span>
+                            <input
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) => handleQuantityChange(item.pid, parseInt(e.target.value))}
+                            />
+                            <button onClick={() => handleRemoveItem(item.pid)}>Remove</button>
+                        </div>
+                    ))}
+                    <div>Total: ${calculateTotal()}</div>
+                    <button className="checkout-button" onClick={checkoutCart}>Checkout</button>
                 </div>
             </div>
+            <button onClick={goToAdminPanel} className="admin-panel-button">Admin Panel</button>
         </header>
     );
-    
-    
 }
 
 export default Header;
