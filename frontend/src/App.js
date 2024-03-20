@@ -11,6 +11,7 @@ import ProductPage from './ProductPage';
 import ChangePassword from './ChangePassword';
 import Login from './Login';
 import { CartProvider } from './CartContext';
+import ProtectedRoute from './ProtectedRoute';
 
 import './App.css';
 
@@ -23,7 +24,7 @@ function App() {
         <Route path="/home" element={<MainLayout><MainContent /></MainLayout>} /> {/* Use /home for main content */}
         <Route path="/:categoryName" element={<MainLayout><CategoryPage /></MainLayout>} />
         <Route path="/product/:productId" element={<MainLayout><ProductPage /></MainLayout>} />
-        <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/admin" element={ <ProtectedRoute> <AdminPanel /> </ProtectedRoute>} />
         <Route path="/change-password" element={<ChangePassword />} />
       </Routes>
     </Router>

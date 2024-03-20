@@ -70,6 +70,7 @@ input[type="submit"]:hover {
 
 button {
     margin-bottom: 20px;
+    margin-right: 10px;
     background-color: #6c757d;
     color: white;
     border: none;

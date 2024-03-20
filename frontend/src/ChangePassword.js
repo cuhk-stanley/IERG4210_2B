@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+
 
 function ChangePassword() {
+    const { user, logout } = useAuth(); // Destructure user and logout from useAuth
     const navigate = useNavigate();
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -9,17 +12,38 @@ function ChangePassword() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Check if new passwords match
+        console.log(user.userId);
         if (newPassword !== confirmNewPassword) {
             alert('New passwords do not match.');
             return;
         }
-
-        // Implement your logic to verify the old password and update the new password in the database
-
-        // If successful, log out the user and redirect to the login page
-        navigate('/');
+        try {
+            const response = await fetch('http://localhost:8000/change-password', { // Adjust the endpoint if necessary
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Include any necessary authentication headers, like a bearer token
+                },
+                body: JSON.stringify({
+                    userId: user.userId, // Ensure you have the user's ID in your user state
+                    oldPassword,
+                    newPassword,
+                }),
+            });
+    
+            if (!response.ok) {
+                throw new Error(await response.json().then(data => data.message));
+            }
+    
+            alert('Password changed successfully. Please log in with your new password.');
+            logout();
+            navigate('/');
+        } catch (error) {
+            console.error(error);
+            alert(error.message || 'An error occurred while changing the password.');
+        }
     };
+    
 
     const handleDiscard = () => {
         navigate('/home'); // Navigate to home page
@@ -30,7 +54,7 @@ function ChangePassword() {
             <form className="login-form" onSubmit={handleSubmit}>
                 <div className="form-group">
                     <label>Email</label>
-                    <input type="email" disabled value="user@example.com" />
+                    <input type="email" disabled value={user?.email || 'Loading...'} /> {/* Show user's email */}
                 </div>
                 <div className="form-group">
                     <label>Old Password</label>

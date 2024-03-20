@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
+import { useAuth } from './AuthContext';
 import './AdminPanel.css';
 const AdminPanel = () => {
     const [categories, setCategories] = useState([]);
@@ -13,6 +14,7 @@ const AdminPanel = () => {
     const [updateCategoryId, setUpdateCategoryId] = useState('');
     const [newCategoryImage, setNewCategoryImage] = useState(null);
     const [newCategoryImagePreviewUrl, setNewCategoryImagePreviewUrl] = useState('');
+    const {logout } = useAuth();
 
     const [product, setProduct] = useState({
         category: '',
@@ -42,6 +44,11 @@ const AdminPanel = () => {
             }
         };
     }, [product.image]);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/');
+      };
 
     const fetchCategories = async () => {
         try {
@@ -271,7 +278,8 @@ const AdminPanel = () => {
     return (
         <div>
             <h1>Admin Panel</h1>
-            <button onClick={() => navigate('/')}>Back to Home</button>
+            <button onClick={() => navigate('/home')}>Home</button>
+            <button onClick={handleLogout}>Logout</button>
             <div className="container admin-panel">
             <div className="grouped-section">
                 <div className="form-section">

@@ -15,18 +15,18 @@ function Header() {
 
       return (
         <header>
-            <h1>IERG4210 phase_2 Ecommerce Site</h1>
+            <h1>IERG4210 Ecommerce Site</h1>
             <div className="header-right">
                 <div className="user-info">
                     Welcome, {user ? user.name : 'Guest'}
                     <div className="user-actions">
                         {user ? (
                             <>
-                                <button onClick={handleLogout} className="btn log-out-btn">Log out</button>
+                                <button onClick={handleLogout} className="btn log-out-btn">Logout</button>
                                 <button onClick={() => navigate('/change-password')} className="btn change-password-btn">Change Password</button>
                             </>
                         ) : (
-                            <button onClick={handleLogout} className="btn sign-in-btn">Sign in</button>
+                            <button onClick={handleLogout} className="btn sign-in-btn">Login</button>
                         )}
                     </div>
                 </div>

@@ -3,14 +3,16 @@ import Breadcrumb from './Breadcrumb';
 import ImageWithFallback from './ImageWithFallback';
 import './maincontent.css';
 
+import { useNavigate } from 'react-router-dom';
+
 const MainContent = () => {
     const [categories, setCategories] = useState([]);
     const breadcrumbItems = [{ label: 'Home', path: '/home' }];
+    const navigate = useNavigate();  // Using useNavigate hook
 
     const handleCategoryClick = (catId) => {
-        window.location = `${catId}`;
-    };
-    
+        navigate(`/${catId}`);  // Navigating without reloading the page
+    };    
 
     useEffect(() => {
         fetch('http://localhost:8000/categories')

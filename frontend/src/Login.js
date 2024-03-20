@@ -1,28 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import './Login.css';
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { login } = useAuth();
+    const { user, login } = useAuth();
     const navigate = useNavigate();
       
+    useEffect(() => {
+        if (user && user.userId === 1 && user.name === 'Admin') {
+            navigate('/admin');
+        } else if (user) {
+            navigate('/home');
+        }
+    }, [user, navigate]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
         if (!email || !password) {
-          alert('Please enter both email and password');
-          return;
-        } 
+            alert('Please enter both email and password');
+            return;
+        }
         try {
-          await login(email, password);
-          navigate('/home');
+            await login(email, password);
         } catch (error) {
             alert('Incorrect email or password');
             console.error(error.message);
         }
-      };
+    };
 
     const handleVisitor = () => {
         navigate('/home');
@@ -50,7 +56,7 @@ function Login() {
                     />
                 </div>
                 <div className="btn-container">
-                <button type="submit" className="btn">Login</button>
+                <button type="button" onClick={handleLogin} className="btn">Login</button>
                 <button type="button" onClick={handleVisitor} className="btn">Continue as Visitor</button>
                 </div>
             </form>

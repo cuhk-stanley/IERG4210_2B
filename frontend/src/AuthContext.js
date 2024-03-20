@@ -7,7 +7,7 @@ export function useAuth() {
 }
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // null means no user is logged in
+  const [user, setUser] = useState(null);
 
   const login = async (email, password) => {
     const response = await fetch('http://localhost:8000/login', {
@@ -20,14 +20,18 @@ export const AuthProvider = ({ children }) => {
   
     const data = await response.json();
     if (response.ok) {
-      setUser({ name: data.user.name, email: data.user.email });
+      setUser({
+        name: data.user.name,
+        email: data.user.email,
+        userId: data.user.userId,
+      });
     } else {
       throw new Error(data.message);
     }
   };
 
   const logout = () => {
-    setUser(null); // Clear user upon logout
+    setUser(null);
   };
 
   const value = {

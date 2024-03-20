@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // Import useNavigate
 import Breadcrumb from './Breadcrumb';
 import ImageWithFallback from './ImageWithFallback';
 import { useCart } from './CartContext';
@@ -7,16 +7,36 @@ import './CategoryPage.css';
 
 const CategoryPage = () => {
     const { categoryName } = useParams();
+    const navigate = useNavigate(); // Use the useNavigate hook
     const [categoryNameDisplay, setCategoryNameDisplay] = useState('');
     const [products, setProducts] = useState([]);
     const [page, setPage] = useState(1); // Track current page for pagination
     const { addToCart } = useCart();
     const loader = useRef(null); // Ref for the loader element
 
-    useEffect(() => {
+useEffect(() => {
+    const fetchProducts = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/products/category/${categoryName}?page=${page}`);
+            const data = await response.json();
+            setProducts(data); // Set products directly instead of appending
+        } catch (error) {
+            console.error('Error fetching products:', error);
+        }
+    };
+
+    if (categoryName) {
+        // Clear the products list and reset the page number when the category changes
+        setProducts([]);
+        setPage(1);
+        fetchProducts();
+    }
+}, [categoryName]); // Depend on categoryName to trigger the effect when it changes
+
+/*    useEffect(() => {
         const fetchAllCategories = async () => {
             try {
-                const response = await fetch(`http://localhost:8000/categories`);
+                const response = await fetch(`http://localhost:8000/categories`); // Updated fetch URL
                 const categories = await response.json();
                 const category = categories.find(category => category.catid.toString() === categoryName);
                 if (category) {
@@ -29,7 +49,7 @@ const CategoryPage = () => {
 
         const fetchProducts = async () => {
             try {
-                const response = await fetch(`http://localhost:8000/products/category/${categoryName}?page=${page}`);
+                const response = await fetch(`http://localhost:8000/products/category/${categoryName}?page=${page}`); // Updated fetch URL
                 const data = await response.json();
                 setProducts(prevProducts => [...prevProducts, ...data]); // Append new products to the existing list
             } catch (error) {
@@ -40,6 +60,8 @@ const CategoryPage = () => {
         fetchAllCategories();
         fetchProducts();
     }, [categoryName, page]);
+*/
+
 
     // Intersection Observer for infinite scrolling
     useEffect(() => {
@@ -76,7 +98,7 @@ const CategoryPage = () => {
     };
 
     const handleProductClick = (productId) => {
-        window.location = `/product/${productId}`;
+        navigate(`/product/${productId}`); // Use navigate for navigation
     };
 
     const breadcrumbItems = [
