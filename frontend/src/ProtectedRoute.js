@@ -1,16 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
+  const { user, rehydrateUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
 
-  if (!user || user.name !== 'Admin' || user.userId !== 1) {
-    // Redirect them to the /login page, but save the current location they were
-    // trying to go to when they were redirected. This allows us to send them
-    // along to that page after they login, which is a nicer user experience
-    // than dropping them off on the home page.
+  useEffect(() => {
+    const checkUser = async () => {
+      await rehydrateUser(); // Rehydrate user session
+      setIsLoading(false);
+    };
+
+    checkUser();
+  }, [rehydrateUser]);
+
+  if (isLoading) {
+    return <div>Loading...</div>; // Or some loading spinner
+  }
+
+  if (!user || user.adminFlag !== 1) {
+    alert('Please log in as an administrator.');
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 

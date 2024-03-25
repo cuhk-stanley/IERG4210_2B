@@ -8,22 +8,37 @@ function Header() {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
 
-    const handleLogout = () => {
-        logout();
-        navigate('/');
-      };
+    const handleChangePassword = async () => {
+        navigate('/change-password');
+    };
+
+
+    const handleLogout = async () => {
+        await logout();
+        navigate('/login');
+    };
+
+    const handleAdminPanel = async () => {
+        navigate('/admin');
+    };
+
+    const getWelcomeMessage = () => {
+        if (!user) return 'Welcome, Guest';
+        return user.adminFlag === 1 ? 'Welcome, Admin' : 'Welcome, User';
+    };
 
       return (
         <header>
             <h1>IERG4210 Ecommerce Site</h1>
             <div className="header-right">
                 <div className="user-info">
-                    Welcome, {user ? user.name : 'Guest'}
+                    {getWelcomeMessage()}
                     <div className="user-actions">
                         {user ? (
                             <>
+                                {user.adminFlag === 1 && ( <button onClick={handleAdminPanel} className="btn admin-panel-btn">Admin Panel</button> )}
                                 <button onClick={handleLogout} className="btn log-out-btn">Logout</button>
-                                <button onClick={() => navigate('/change-password')} className="btn change-password-btn">Change Password</button>
+                                <button onClick={handleChangePassword} className="btn change-password-btn">Change Password</button>
                             </>
                         ) : (
                             <button onClick={handleLogout} className="btn sign-in-btn">Login</button>

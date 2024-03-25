@@ -11,7 +11,7 @@ const Sidebar = () => {
     };
 
     useEffect(() => {
-        fetch('http://localhost:8000/categories') // Updated to use the full path
+        fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/categories') // Updated to use the full path
             .then(response => response.json())
             .then(data => setCategories(data))
             .catch(error => console.error('Error fetching categories:', error));

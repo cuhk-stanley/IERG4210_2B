@@ -1,3 +1,6 @@
+require('dotenv').config();
+
+
 const express = require('express');
 const multer = require('multer');
 const sqlite3 = require('sqlite3').verbose();
@@ -6,15 +9,34 @@ const fs = require('fs');
 const app = express();
 const path = require('path');
 const port = 8000;
+const saltRounds = 10;
 const cors = require('cors');
 //const dbPath = path.resolve(__dirname, './mydatabase.db');
 const User = require('./models/user');
+const session = require('express-session');
 const userRoutes = require('./routes/users');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
+const { body, validationResult, param } = require('express-validator');
+const corsOptions = {
+    origin: 'https://13.236.96.36',
+    credentials: true,
+  };
 app.use(express.json());
-app.use(cors());
+app.use(cookieParser());
+app.use(cors(corsOptions));
 app.use('/api/users', userRoutes);
-console.log("Current directory:", __dirname);
-const saltRounds = 10;
+app.use(session({
+    secret: process.env.SECRET_KEY,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none' // Consider 'none' if your frontend and backend are on different domains and using https
+    }
+}));
 
 
 // Set up storage engine for Multer
@@ -42,60 +64,141 @@ const db = new sqlite3.Database('./mydatabase.db', (err) => {
 app.use(express.urlencoded({ extended: true }));
 
 
-app.post('/register', async (req, res) => {
-    try {
-      const { email, password, username } = req.body;
-      const hashedPassword = await bcrypt.hash(password, saltRounds); // Hashing the password
-  
-      // Using Sequelize to create a new user with the hashed password
-      const newUser = await User.create({
-        email: email,
-        password: hashedPassword, // Storing the hashed password
-        username: username
-      });
-  
-      // Responding with success (don't include sensitive info in the response)
-      res.status(201).json({
-        message: 'User created successfully',
-        user: {
-          email: newUser.email,
-          username: newUser.username
+app.get('/get-nonce', (req, res) => {
+    const nonce = crypto.randomBytes(16).toString('base64'); // Generate a nonce
+    req.session.nonce = nonce; // Store the nonce in the session
+    req.session.save(err => {
+        if (err) {
+          console.error('Session save error:', err);
         }
       });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'An error occurred while creating the user' });
-    }
-  });
+    res.json({ nonce }); // Send the nonce to the client
+});
 
+
+// Server-side: Example endpoint to validate session
+app.get('/validate-session', (req, res) => {
+    const token = req.cookies.auth; // Assuming 'auth' is your cookie name
+    if (!token) {
+        return res.status(401).json({ message: 'No session' });
+    }
+
+    jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ message: 'Invalid session' });
+        }
+
+        // If the token is valid, return user information (avoid sensitive info)
+        res.json({ user: { email: decoded.email, adminFlag: decoded.adminFlag, userId: decoded.userId } });
+    });
+});
+
+
+app.post('/change-password', async (req, res) => {
+    const { userId, oldPassword, newPassword, nonce } = req.body;
+    if (!nonce || nonce !== req.session.nonce) {
+        return res.status(403).json({ message: 'Invalid nonce' });
+    }
+    if (!userId || !oldPassword || !newPassword) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // SQLite query to find user by ID, including the salt
+    const queryFindUser = 'SELECT * FROM user WHERE userid = ?';
+
+    db.get(queryFindUser, [userId], async (err, user) => {
+        if (err) {
+            console.error(err.message);
+            return res.status(500).json({ message: 'An error occurred while fetching the user' });
+        }
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Compare old password using the salt from the database
+        const match = await bcrypt.compare(oldPassword, user.password);
+        if (!match) {
+            return res.status(401).json({ message: 'Old password is incorrect' });
+        }
+
+        // Generate a new salt for the new password
+        const newSalt = await bcrypt.genSalt(saltRounds);
+        const hashedNewPassword = await bcrypt.hash(newPassword, newSalt);
+
+        // SQLite query to update user's password and salt
+        const queryUpdatePassword = 'UPDATE user SET password = ?, salt = ? WHERE userid = ?';
+
+        db.run(queryUpdatePassword, [hashedNewPassword, newSalt, userId], (updateErr) => {
+            if (updateErr) {
+                console.error(updateErr.message);
+                return res.status(500).json({ message: 'An error occurred while updating the password' });
+            }
+            res.clearCookie('auth');
+            res.status(200).json({ message: 'Password changed successfully' });
+        });
+    });
+});
+
+app.post('/logout', (req, res) => {
+    res.clearCookie('auth'); // 'auth' is the name of your authentication cookie
+    res.json({ message: 'Logout successful' });
+});
 
 app.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, nonce } = req.body;
+    if (!nonce || nonce !== req.session.nonce) {
+        return res.status(403).json({ message: 'Invalid nonce' });
+    }
   
     try {
-      const user = await User.findOne({ where: { email } });
-      if (!user) {
-        return res.status(401).json({ message: 'Authentication failed' });
-      }
+        const queryFindUser = 'SELECT * FROM user WHERE email = ?';
+        db.get(queryFindUser, [email], async (err, user) => {
+            if (err) {
+                console.error(err.message);
+                return res.status(500).json({ message: 'An error occurred' });
+            }
   
-      const match = await bcrypt.compare(password, user.password);
-      if (!match) {
-        return res.status(401).json({ message: 'Authentication failed'});
-      }
+            if (!user) {
+                return res.status(401).json({ message: 'Authentication failed' });
+            }
   
-      // Your logic for successful authentication...
-      res.json({
-        message: 'Login successful',
-        user: {
-          name: user.username, // Do not return sensitive information
-          email: user.email
-        }
-      });
+            const match = await bcrypt.compare(password, user.password);
+            if (!match) {
+                return res.status(401).json({ message: 'Authentication failed' });
+            }
+  
+            // Generate a JWT token
+            const token = jwt.sign(
+                { userId: user.userid, email: user.email, adminFlag: user.adminFlag },
+                process.env.SECRET_KEY,
+                { expiresIn: '3d' } // Token expires in 3 days
+            );  
+            // Set the token in an httpOnly cookie
+            res.cookie('auth', token, {
+                httpOnly: true,
+                maxAge: 259200000,
+                sameSite: 'lax', // For development on HTTP
+                path: '/',
+                domain: 'localhost'
+            });
+            
+  
+            // Respond with a success message
+            res.json({
+                message: 'Login successful',
+                user: {
+                    adminFlag: user.adminFlag,
+                    userId: user.userid,
+                    email: user.email
+                }
+            });
+        });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'An error occurred' });
+        console.error(error);
+        res.status(500).json({ message: 'An error occurred' });
     }
-  });
+});
   
   
 
@@ -130,7 +233,7 @@ app.get('/admin-panel', (req, res) => {
 
 
 app.get('/categories', (req, res) => {
-   db.all("SELECT catid, name FROM categories", [], (err, categories) => {
+   db.all("SELECT * FROM categories", [], (err, categories) => {
        if (err) {
            console.error(err.message);
            res.status(500).send("Error retrieving categories from the database.");
@@ -156,6 +259,10 @@ app.get('/products', (req, res) => {
 
 app.delete('/delete-category/:catid', (req, res) => {
     const { catid } = req.params;
+    const nonce = req.headers['x-csrf-token'];
+    if (!nonce || nonce !== req.session.nonce) {
+        return res.status(403).json({ message: 'Invalid or missing nonce' });
+    }
     const deleteSql = 'DELETE FROM categories WHERE catid = ?';
 
     db.run(deleteSql, [catid], function(err) {
@@ -174,7 +281,10 @@ app.delete('/delete-category/:catid', (req, res) => {
 
 app.delete('/delete-product/:productId', (req, res) => {
     const { productId } = req.params;
-
+    const nonce = req.headers['x-csrf-token'];
+    if (!nonce || nonce !== req.session.nonce) {
+        return res.status(403).json({ message: 'Invalid or missing nonce' });
+    }
     // First, get the product to retrieve the image path/filename
     db.get('SELECT image FROM products WHERE pid = ?', [productId], (err, row) => {
         if (err) {
@@ -209,7 +319,25 @@ app.delete('/delete-product/:productId', (req, res) => {
 });
 
 
-app.post('/add-category', upload.single('image'), (req, res) => {
+app.post('/add-category', upload.single('image'),
+[
+    [
+        body('name')
+          .trim()
+          .escape()
+          .isLength({ min: 2, max: 50 })
+          .withMessage('Category name must be between 2 and 50 characters long'),
+      ],
+],
+(req, res) => {
+    const { nonce } = req.body;
+    if (!nonce || nonce !== req.session.nonce) {
+        return res.status(403).json({ message: 'Invalid or missing nonce' });
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
     const { name } = req.body;
 
     if (!req.file) {
@@ -246,6 +374,11 @@ app.post('/add-category', upload.single('image'), (req, res) => {
 
 
 app.post('/update-category/:id', upload.single('image'), (req, res) => {
+    const nonce = req.body.nonce;
+    if (!nonce || nonce !== req.session.nonce) {
+        return res.status(403).json({ message: 'Invalid nonce' });
+    }
+
     const { id } = req.params;
 
     if (!req.file) {
@@ -298,51 +431,77 @@ app.post('/update-category/:id', upload.single('image'), (req, res) => {
 
 
 // Endpoint to handle adding products
-app.post('/add-product', upload.single('image'), (req, res) => {
+app.post('/add-product', upload.single('image'), [
+    body('nonce').custom((value, { req }) => {
+        // Validate the nonce
+        if (!value || value !== req.session.nonce) {
+            throw new Error('Invalid nonce');
+        }
+        return true;
+    }),
+    body('category').isInt().withMessage('Category must be an integer'),
+    body('name').matches(/^[A-Za-z0-9 ]{2,50}$/).withMessage('Product name must be 2-50 characters long and contain letters and numbers only'),
+    body('price').isFloat({ gt: 0 }).withMessage('Price must be a positive number'),
+    body('inventory').optional().isInt({ min: 0 }).withMessage('Inventory must be a non-negative integer'),
+    body('description').optional().isString(),
+], (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    if (!req.file) {
+        return res.status(400).send('No image file provided');
+    }
+
     const { category, name, price, description, inventory } = req.body;
     const inventoryValue = inventory || 0;
-
-    const targetDir = path.resolve(__dirname, '../frontend/public/image');
 
     const sanitizedProductName = name.replace(/[^a-zA-Z0-9 ]/g, '_');
     const originalExtension = path.extname(req.file.originalname);
     const newFilename = `${sanitizedProductName.replace(/ /g, '_')}${originalExtension}`;
-    //const newFilename = `${sanitizedProductName}${originalExtension}`;
-    const newPath = path.join(targetDir, newFilename);
 
-
-    // Move and rename the file
-    fs.rename(req.file.path, newPath, (err) => {
-        if (err) {
-            console.error('Error moving the file:', err);
-            return res.status(500).send('Error processing image file');
-        }
-
-        // Now includes 'inventory' in the INSERT statement
-        // Adjust the database query to include the new path or filename as needed
-        db.run(`INSERT INTO products (catid, name, price, inventory, description, image) VALUES (?, ?, ?, ?, ?, ?)`,
-            [category, name, price, inventoryValue, description, newPath], function(err) {
-                if (err) {
-                    console.error("Database insertion error:", err);
-                    return res.status(500).send(`Error adding product to the database: ${err.message}`);
-                }
-                res.send('Product added successfully');
+    db.run(`INSERT INTO products (catid, name, price, inventory, description, image) VALUES (?, ?, ?, ?, ?, ?)`,
+        [category, name, price, inventoryValue, description, newFilename], function(err) {
+            if (err) {
+                console.error("Database insertion error:", err);
+                return res.status(500).send(`Error adding product to the database: ${err.message}`);
             }
-        );
-    });
+            res.send('Product added successfully');
+        }
+    );
 });
 
-app.use('/image', express.static(path.join(__dirname, 'public', 'image')));
+
 
 
 // Endpoint to update a product
-app.put('/update-product/:productId', upload.single('image'), (req, res) => {
+app.put('/update-product/:productId', upload.single('image'),
+[
+    param('productId').isInt().withMessage('Product ID must be an integer'),
+    body('category').isInt().withMessage('Category must be an integer'),
+    body('name').isString().isLength({ min: 2 }).withMessage('Product name must be at least 2 characters long'),
+    body('price').isFloat({ gt: 0 }).withMessage('Price must be a positive number'),
+    body('inventory').isInt({ gt: -1 }).withMessage('Inventory must be a non-negative integer'),
+    body('description').optional().isString(),
+],
+(req, res) => {
+    const nonce = req.body.nonce;
+    if (!nonce || nonce !== req.session.nonce) {
+        return res.status(403).json({ message: 'Invalid nonce' });
+    }
+
+    const errors = validationResult(req);
+    console.log(errors);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
     const { productId } = req.params;
     const { category, name, price, description, inventory } = req.body;
     let imagePath = '';
 
     if (req.file) {
-        imagePath = req.file.path; // If a new image is uploaded, use its path
+        imagePath = req.file.path;
     }
 
     const updateQuery = `UPDATE products SET name = ?, price = ?, description = ?, inventory = ? WHERE pid = ?`;

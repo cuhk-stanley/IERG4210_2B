@@ -14,7 +14,8 @@ const AdminPanel = () => {
     const [updateCategoryId, setUpdateCategoryId] = useState('');
     const [newCategoryImage, setNewCategoryImage] = useState(null);
     const [newCategoryImagePreviewUrl, setNewCategoryImagePreviewUrl] = useState('');
-    const {logout } = useAuth();
+    const [nonce, setNonce] = useState('');
+    const {user, logout } = useAuth();
 
     const [product, setProduct] = useState({
         category: '',
@@ -36,6 +37,15 @@ const AdminPanel = () => {
     useEffect(() => {
         fetchCategories();
         fetchProducts();
+        const fetchNonce = async () => {
+            const response = await fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/get-nonce', {
+                credentials: 'include',
+            });
+            const data = await response.json();
+            setNonce(data.nonce);
+        };
+    
+        fetchNonce();
     }, []);
     useEffect(() => {
         return () => {
@@ -46,13 +56,28 @@ const AdminPanel = () => {
     }, [product.image]);
 
     const handleLogout = () => {
+        navigate('/login');
         logout();
-        navigate('/');
       };
+
+    const isValidPrice = (price) => {
+        return price > 0;
+    };
+
+    const isValidName = (name) => {
+        const regex = /^[A-Za-z0-9]{2,50}$/;
+        return regex.test(name);
+      };
+
+    // Validate that the inventory is a positive integer
+    const isValidInventory = (inventory) => {
+        const num = parseInt(inventory, 10);
+        return num >= 0 && num === parseFloat(inventory);
+    };
 
     const fetchCategories = async () => {
         try {
-            const response = await fetch('http://localhost:8000/categories');
+            const response = await fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/categories');
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
@@ -67,7 +92,7 @@ const AdminPanel = () => {
     };
 
     const fetchProducts = async () => {
-        const response = await fetch('http://localhost:8000/products');
+        const response = await fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/products');
         const data = await response.json();
         setProducts(data);
     };
@@ -76,9 +101,13 @@ const AdminPanel = () => {
     const deleteCategory = async () => {
         if (window.confirm(`Are you sure you want to delete this category?`)) {
             try {
-                console.log(selectedCategoryId);
-                const response = await fetch(`http://localhost:8000/delete-category/${selectedCategoryId}`, {
+                const response = await fetch(`https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/delete-category/${selectedCategoryId}`, {
                     method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': nonce, // Include the nonce here
+                    },
+                    credentials: 'include', // Ensure cookies are sent with the request
                 });
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -91,13 +120,18 @@ const AdminPanel = () => {
             }
         }
     };
+    
 
     const deleteProduct = async () => {
         if (window.confirm(`Are you sure you want to delete this product?`)) {
             try {
-                console.log(selectedProductId);
-                const response = await fetch(`http://localhost:8000/delete-product/${selectedProductId}`, {
+                const response = await fetch(`https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/delete-product/${selectedProductId}`, {
                     method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': nonce,
+                    },
+                    credentials: 'include',
                 });
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -122,9 +156,6 @@ const AdminPanel = () => {
 
     const handleUpdateCategorySubmit = async (event) => {
         event.preventDefault();
-        console.log("Updating category with ID:", updateCategoryId); // Check selected category ID
-        console.log("Image selected for update:", newCategoryImage); // Log image info
-    
         if (!updateCategoryId) {
             alert("Please select a category to update.");
             return;
@@ -137,15 +168,16 @@ const AdminPanel = () => {
     
         const formData = new FormData();
         formData.append("image", newCategoryImage);
+        formData.append('nonce', nonce);
     
         try {
-            const response = await fetch(`http://localhost:8000/update-category/${updateCategoryId}`, {
+            const response = await fetch(`https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/update-category/${updateCategoryId}`, {
                 method: 'POST',
                 body: formData,
+                credentials: 'include',
             });
     
             const result = await response.json();
-            console.log("Response from server:", result); // Log server response
             alert(result.message);
             fetchCategories();
     
@@ -159,13 +191,20 @@ const AdminPanel = () => {
 
     const handleCategorySubmit = async (e) => {
         e.preventDefault();
+        if (!isValidName(categoryName)) {
+            alert('Category name must be 2-50 characters long and contain letters and numbers only.');
+            return;
+          }
         const formData = new FormData();
         formData.append('name', categoryName);
         if (categoryImage) formData.append('image', categoryImage);
+
+        formData.append('nonce', nonce);
         try {
-            const response = await fetch('http://localhost:8000/add-category', {
+            const response = await fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/add-category', {
                 method: 'POST',
                 body: formData,
+                credentials: 'include',
             });
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -185,15 +224,30 @@ const AdminPanel = () => {
     
     const handleUpdateProductSubmit = async (e) => {
         e.preventDefault();
+        if (!isValidName(categoryName)) {
+            alert('Category name must be 2-50 characters long and contain letters and numbers only.');
+            return;
+          }
+        if (!isValidPrice(selectedProductDetails.price)) {
+            alert('Price must be a positive real number.');
+            return;
+        }
+        if (!isValidInventory(selectedProductDetails.inventory)) {
+            alert('Inventory must be a positive integer.');
+            return;
+        }
         const formData = new FormData();
         formData.append('name', selectedProductDetails.name);
         formData.append('price', selectedProductDetails.price);
         formData.append('description', selectedProductDetails.description);
         formData.append('inventory', selectedProductDetails.inventory);
+        formData.append('category', product.category.toString());
+        formData.append('nonce', nonce);
         try {
-            const response = await fetch(`http://localhost:8000/update-product/${updateProductId}`, {
+            const response = await fetch(`https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/update-product/${updateProductId}`, {
                 method: 'PUT',
                 body: formData,
+                credentials: 'include',
             });
             if (!response.ok) {
                 throw new Error('Failed to update product');
@@ -209,19 +263,33 @@ const AdminPanel = () => {
     
     const handleProductSubmit = async (e) => {
         e.preventDefault();
+        if (!isValidName(product.name)) {
+            alert('Category name must be 2-50 characters long and contain letters and numbers only.');
+            return;
+          }
+        if (!isValidPrice(product.price)) {
+            alert('Price must be a positive real number.');
+            return;
+        }
+        if (!isValidInventory(product.inventory)) {
+            alert('Inventory must be a positive integer.');
+            return;
+        }
         const formData = new FormData();
         formData.append('category', product.category);
         formData.append('name', product.name);
         formData.append('price', product.price);
         formData.append('description', product.description);
-        if (product.image) formData.append('image', product.image);
-        formData.append('inventory', product.inventory); // Add this line
+        formData.append('inventory', product.inventory);
+        if (product.image) formData.append('image', product.image); 
+        formData.append('nonce', nonce);
 
 
         try {
-            const response = await fetch('http://localhost:8000/add-product', {
+            const response = await fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/add-product', {
                 method: 'POST',
                 body: formData,
+                credentials: 'include',
             });
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -278,7 +346,7 @@ const AdminPanel = () => {
     return (
         <div>
             <h1>Admin Panel</h1>
-            <button onClick={() => navigate('/home')}>Home</button>
+            <button onClick={() => navigate('/')}>Home</button>
             <button onClick={handleLogout}>Logout</button>
             <div className="container admin-panel">
             <div className="grouped-section">
@@ -293,6 +361,8 @@ const AdminPanel = () => {
                             required
                             value={categoryName}
                             onChange={(e) => setCategoryName(e.target.value)}
+                            pattern="[A-Za-z0-9]{2,50}"
+                            title="Category name must be 2-50 characters long and contain letters and numbers only."
                         />
                         <label htmlFor="categoryImage">Category Image:</label>
                         <input
@@ -306,6 +376,7 @@ const AdminPanel = () => {
                                 <img src={categoryImagePreviewUrl} alt="Category Thumbnail Preview" style={{ maxWidth: '200px', maxHeight: '200px' }} />
                             </div>
                         )}
+                        <input type="hidden" name="nonce" value={nonce} />
                         <input type="submit" value="Add Category" />
                     </form>
                 </div>
@@ -322,6 +393,7 @@ const AdminPanel = () => {
                             </option>
                         ))}
                     </select>
+                    <input type="hidden" name="nonce" value={nonce} />
                     <button onClick={deleteCategory}>Delete Category</button>
                     </div>
                     <div className="form-section">
@@ -346,6 +418,7 @@ const AdminPanel = () => {
                 <img src={newCategoryImagePreviewUrl} alt="New Category Thumbnail Preview" style={{ maxWidth: '200px', maxHeight: '200px' }} />
             </div>
         )}
+        <input type="hidden" name="nonce" value={nonce} />
         <button type="submit">Update Category Image</button>
     </form>
 </div>
@@ -378,6 +451,8 @@ const AdminPanel = () => {
                             required
                             value={product.name}
                             onChange={(e) => setProduct({ ...product, name: e.target.value })}
+                            pattern="[A-Za-z0-9]{2,50}"
+                            title="Product name must be 2-50 characters long and contain letters and numbers only."
                         />
                         <label htmlFor="price">Price:</label>
                         <input
@@ -385,6 +460,8 @@ const AdminPanel = () => {
                             id="price"
                             name="price"
                             required
+                            min="0.01"
+                            step="0.01"
                             value={product.price}
                             onChange={(e) => setProduct({ ...product, price: e.target.value })}
                         />
@@ -402,6 +479,8 @@ const AdminPanel = () => {
                             id="inventory"
                             name="inventory"
                             required
+                            min="0"
+                            step="1"
                             value={product.inventory}
                             onChange={(e) => setProduct({ ...product, inventory: e.target.value })}
                         />
@@ -420,6 +499,7 @@ const AdminPanel = () => {
                                 </div>
                             )
                         }
+                        <input type="hidden" name="nonce" value={nonce} />
                         <input type="submit" value="Add Product" />
                     </form>
                 </div>
@@ -437,6 +517,7 @@ const AdminPanel = () => {
                             </option>
                         ))}
                     </select>
+                    <input type="hidden" name="nonce" value={nonce} />
                     <button onClick={deleteProduct}>Delete Product</button>
                 </div>
                 <div className="form-section">
@@ -450,7 +531,6 @@ const AdminPanel = () => {
             setupdateProductId(e.target.value);
             const selectedProduct = products.find(product => product.pid.toString() === e.target.value);
             if (selectedProduct) {
-                console.log(selectedProduct);
                 setSelectedProductDetails({
                     name: selectedProduct.name,
                     price: selectedProduct.price,
@@ -472,6 +552,9 @@ const AdminPanel = () => {
             id="updateProductPrice"
             name="updateProductPrice"
             value={selectedProductDetails.price}
+            required
+            min="0.01"
+            step="0.01"
             onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, price: e.target.value })}
         />
         <label htmlFor="updateProductDescription">Description:</label>
@@ -487,6 +570,9 @@ const AdminPanel = () => {
             id="updateProductInventory"
             name="updateProductInventory"
             value={selectedProductDetails.inventory}
+            required
+            min="0"
+            step="1"
             onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, inventory: e.target.value })}
         />
         <input type="submit" value="Update Product" />

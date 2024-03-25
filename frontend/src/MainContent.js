@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 const MainContent = () => {
     const [categories, setCategories] = useState([]);
-    const breadcrumbItems = [{ label: 'Home', path: '/home' }];
+    const breadcrumbItems = [{ label: 'Home', path: '/' }];
     const navigate = useNavigate();  // Using useNavigate hook
 
     const handleCategoryClick = (catId) => {
@@ -15,11 +15,14 @@ const MainContent = () => {
     };    
 
     useEffect(() => {
-        fetch('http://localhost:8000/categories')
+        fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/categories')
             .then(response => response.json())
-            .then(data => setCategories(data))
+            .then(data => {
+                setCategories(data);
+            })
             .catch(error => console.error('Error fetching categories:', error));
     }, []);
+    
 
     return (
         <main>
@@ -33,7 +36,7 @@ const MainContent = () => {
                     <div className="category-item" key={category.catid} onClick={() => handleCategoryClick(category.catid)}>
                             <h3>{category.name}</h3>
                             <div className="bottom-image">
-                            <ImageWithFallback imageName={category.name} alt={category.name} />
+                            <ImageWithFallback imageName={category.image} alt={category.name} />
                             </div>
                     </div>
                 ))}

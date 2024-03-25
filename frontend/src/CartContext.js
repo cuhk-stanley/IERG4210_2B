@@ -53,7 +53,7 @@ const checkoutCart = async () => {
     }
 
     try {
-        const response = await fetch('http://localhost:8000/checkout', {
+        const response = await fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/checkout', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

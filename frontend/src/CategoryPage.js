@@ -17,7 +17,7 @@ const CategoryPage = () => {
 useEffect(() => {
     const fetchProducts = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/products/category/${categoryName}?page=${page}`);
+            const response = await fetch(`https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/products/category/${categoryName}?page=${page}`);
             const data = await response.json();
             setProducts(data); // Set products directly instead of appending
         } catch (error) {
@@ -32,35 +32,6 @@ useEffect(() => {
         fetchProducts();
     }
 }, [categoryName]); // Depend on categoryName to trigger the effect when it changes
-
-/*    useEffect(() => {
-        const fetchAllCategories = async () => {
-            try {
-                const response = await fetch(`http://localhost:8000/categories`); // Updated fetch URL
-                const categories = await response.json();
-                const category = categories.find(category => category.catid.toString() === categoryName);
-                if (category) {
-                    setCategoryNameDisplay(category.name);
-                }
-            } catch (error) {
-                console.error('Error fetching categories:', error);
-            }
-        };
-
-        const fetchProducts = async () => {
-            try {
-                const response = await fetch(`http://localhost:8000/products/category/${categoryName}?page=${page}`); // Updated fetch URL
-                const data = await response.json();
-                setProducts(prevProducts => [...prevProducts, ...data]); // Append new products to the existing list
-            } catch (error) {
-                console.error('Error fetching products:', error);
-            }
-        };
-
-        fetchAllCategories();
-        fetchProducts();
-    }, [categoryName, page]);
-*/
 
 
     // Intersection Observer for infinite scrolling
@@ -102,7 +73,7 @@ useEffect(() => {
     };
 
     const breadcrumbItems = [
-        { label: 'Home', path: '/home' },
+        { label: 'Home', path: '/' },
         { label: categoryNameDisplay, path: `/${categoryName}` },
     ];
 
@@ -114,7 +85,7 @@ useEffect(() => {
                 {products.map((product) => (
                     <div className="product-item" key={product.pid} onClick={() => handleProductClick(product.pid)} style={{ cursor: 'pointer' }}>
                         <h3>{product.name}</h3>
-                        <ImageWithFallback imageName={product.name} alt={product.name} />
+                        <ImageWithFallback imageName={product.image} alt={product.name} />
                         <p>Price: ${product.price}</p>
                         <button onClick={(e) => handleAddToCart(e, product)}>Add to Cart</button>
                     </div>

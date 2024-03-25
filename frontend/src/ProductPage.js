@@ -21,7 +21,7 @@ const ProductPage = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch(`http://localhost:8000/product/${productId}`);
+                const response = await fetch(`https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/product/${productId}`);
                 const data = await response.json();
                 setProduct(data);
             } catch (error) {
@@ -37,7 +37,7 @@ const ProductPage = () => {
     }
 
     const breadcrumbItems = [
-        { label: 'Home', path: '/home' },
+        { label: 'Home', path: '/' },
         { label: product.categoryName, path: `/${product.categoryId}` },
         { label: product.name, path: `/product/${productId}` },
     ];
@@ -47,7 +47,7 @@ const ProductPage = () => {
             <Breadcrumb items={breadcrumbItems} />
             <div className="product-layout">
                 <div className="product-image">
-                    <ImageWithFallback imageName={product.name} alt={product.name} />
+                    <ImageWithFallback imageName={product.image} alt={product.name} />
                 </div>
                 <div className="product-details">
                     <h2>{product.name}</h2>

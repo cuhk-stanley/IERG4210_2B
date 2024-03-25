@@ -12,12 +12,17 @@ const User = sequelize.define('user', {
     unique: true,
     allowNull: false
   },
-  password: { // Rename this from 'hashedPassword' to 'password'
+  password: { // This is your hashed password
     type: Sequelize.STRING,
     allowNull: false
   },
-  username: { // Add this field to match your database schema
-    type: Sequelize.STRING
+  salt: { // Adding the salt column
+    type: Sequelize.STRING, // Salts are strings
+    allowNull: false
+  },
+  adminFlag: { // Make sure this reflects your table structure
+    type: Sequelize.INTEGER,
+    allowNull: false
   }
 }, {
   tableName: 'user',

@@ -20,8 +20,8 @@ function App() {
     <AuthProvider>
     <Router>
       <Routes>
-        <Route path="/" element={<Login />} /> {/* Make Login the default route */}
-        <Route path="/home" element={<MainLayout><MainContent /></MainLayout>} /> {/* Use /home for main content */}
+        <Route path="/login" element={<Login />} /> {/* Make Login the default route */}
+        <Route path="/" element={<MainLayout><MainContent /></MainLayout>} /> {/* Use /home for main content */}
         <Route path="/:categoryName" element={<MainLayout><CategoryPage /></MainLayout>} />
         <Route path="/product/:productId" element={<MainLayout><ProductPage /></MainLayout>} />
         <Route path="/admin" element={ <ProtectedRoute> <AdminPanel /> </ProtectedRoute>} />

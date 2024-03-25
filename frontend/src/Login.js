@@ -1,19 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import './Login.css';
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [nonce, setNonce] = useState('');
     const { user, login } = useAuth();
     const navigate = useNavigate();
-      
+
     useEffect(() => {
-        if (user && user.userId === 1 && user.name === 'Admin') {
+        const fetchNonce = async () => {
+            const response = await fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/get-nonce', {
+                credentials: 'include',
+            });
+            const data = await response.json();
+            setNonce(data.nonce);
+        };
+    
+        fetchNonce();
+    }, []);
+    
+
+    useEffect(() => {
+        if (user && user.adminFlag === 1) {
             navigate('/admin');
         } else if (user) {
-            navigate('/home');
+            navigate('/');
         }
+        // This effect should depend on `user` and `navigate`
     }, [user, navigate]);
 
     const handleLogin = async (e) => {
@@ -23,7 +38,8 @@ function Login() {
             return;
         }
         try {
-            await login(email, password);
+            // Just call login, navigation will be handled by useEffect
+            await login(email, password, nonce);
         } catch (error) {
             alert('Incorrect email or password');
             console.error(error.message);
@@ -31,7 +47,7 @@ function Login() {
     };
 
     const handleVisitor = () => {
-        navigate('/home');
+        navigate('/');
     };
 
     return (
@@ -55,6 +71,7 @@ function Login() {
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
+                <input type="hidden" name="nonce" value={nonce} />
                 <div className="btn-container">
                 <button type="button" onClick={handleLogin} className="btn">Login</button>
                 <button type="button" onClick={handleVisitor} className="btn">Continue as Visitor</button>
