@@ -15,7 +15,12 @@ const AdminPanel = () => {
     const [newCategoryImage, setNewCategoryImage] = useState(null);
     const [newCategoryImagePreviewUrl, setNewCategoryImagePreviewUrl] = useState('');
     const [nonce, setNonce] = useState('');
-    const {user, logout } = useAuth();
+    const { logout } = useAuth();
+    const [currentPage, setCurrentPage] = useState('Categories');
+
+    const [orders, setOrders] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     const [product, setProduct] = useState({
         category: '',
@@ -54,6 +59,25 @@ const AdminPanel = () => {
             }
         };
     }, [product.image]);
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/api/orders');
+                if (!response.ok) throw new Error('Failed to fetch orders');
+
+                const data = await response.json();
+                setOrders(data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchOrders();
+    }, []);
 
     const handleLogout = () => {
         navigate('/login');
@@ -224,8 +248,8 @@ const AdminPanel = () => {
     
     const handleUpdateProductSubmit = async (e) => {
         e.preventDefault();
-        if (!isValidName(categoryName)) {
-            alert('Category name must be 2-50 characters long and contain letters and numbers only.');
+        if (!isValidName(selectedProductDetails.name)) {
+            alert('Product name must be 2-50 characters long and contain letters and numbers only.');
             return;
           }
         if (!isValidPrice(selectedProductDetails.price)) {
@@ -348,7 +372,13 @@ const AdminPanel = () => {
             <h1>Admin Panel</h1>
             <button onClick={() => navigate('/')}>Home</button>
             <button onClick={handleLogout}>Logout</button>
+            <div className="page-selection">
+                <button onClick={() => setCurrentPage('Categories')}>Categories</button>
+                <button onClick={() => setCurrentPage('Products')}>Products</button>
+                <button onClick={() => setCurrentPage('Orders')}>Orders</button>
+            </div>
             <div className="container admin-panel">
+            {currentPage === 'Categories' && (
             <div className="grouped-section">
                 <div className="form-section">
                 <h2 className="section-title">Add Category</h2>
@@ -397,34 +427,34 @@ const AdminPanel = () => {
                     <button onClick={deleteCategory}>Delete Category</button>
                     </div>
                     <div className="form-section">
-    <h2 className="section-title">Update Category Image</h2>
-    <form onSubmit={handleUpdateCategorySubmit}>
-        <select
-            value={updateCategoryId}
-            onChange={(e) => setUpdateCategoryId(e.target.value)}
-        >
-            <option value="">Select Category</option>
-            {categories.map((category) => (
-                <option key={category.catid} value={category.catid}>{category.name}</option>
-            ))}
-        </select>
-        <label htmlFor="categoryImage">Category Image:</label>
-        <input
-            type="file"
-            onChange={handleNewCategoryImageChange}
-        />
-        {newCategoryImagePreviewUrl && (
-            <div className="thumbnail-preview">
-                <img src={newCategoryImagePreviewUrl} alt="New Category Thumbnail Preview" style={{ maxWidth: '200px', maxHeight: '200px' }} />
-            </div>
-        )}
-        <input type="hidden" name="nonce" value={nonce} />
-        <button type="submit">Update Category Image</button>
-    </form>
-</div>
-
-
+                    <h2 className="section-title">Update Category Image</h2>
+                    <form onSubmit={handleUpdateCategorySubmit}>
+                        <select
+                            value={updateCategoryId}
+                            onChange={(e) => setUpdateCategoryId(e.target.value)}
+                        >
+                            <option value="">Select Category</option>
+                            {categories.map((category) => (
+                                <option key={category.catid} value={category.catid}>{category.name}</option>
+                            ))}
+                        </select>
+                        <label htmlFor="categoryImage">Category Image:</label>
+                        <input
+                            type="file"
+                            onChange={handleNewCategoryImageChange}
+                        />
+                        {newCategoryImagePreviewUrl && (
+                            <div className="thumbnail-preview">
+                                <img src={newCategoryImagePreviewUrl} alt="New Category Thumbnail Preview" style={{ maxWidth: '200px', maxHeight: '200px' }} />
+                            </div>
+                        )}
+                        <input type="hidden" name="nonce" value={nonce} />
+                        <button type="submit">Update Category Image</button>
+                    </form>
                 </div>
+                </div>
+                )}
+                {currentPage === 'Products' && (
                 <div className="grouped-section">
                 <div className="form-section">
                 <h2 className="section-title">Add Product</h2>
@@ -521,66 +551,109 @@ const AdminPanel = () => {
                     <button onClick={deleteProduct}>Delete Product</button>
                 </div>
                 <div className="form-section">
-    <h2 className="section-title">Update Product</h2>
-    <form onSubmit={handleUpdateProductSubmit}>
-    <label htmlFor="productSelection">Select Product:</label>
-    <select
-        id="productSelection"
-        value={updateProductId}
-        onChange={(e) => {
-            setupdateProductId(e.target.value);
-            const selectedProduct = products.find(product => product.pid.toString() === e.target.value);
-            if (selectedProduct) {
-                setSelectedProductDetails({
-                    name: selectedProduct.name,
-                    price: selectedProduct.price,
-                    description: selectedProduct.description,
-                    inventory: selectedProduct.inventory,
-                });                
-            }
-        }}
-        
-    >
-        <option value="">Select a Product</option>
-        {products.map((product) => (
-            <option key={product.pid} value={product.pid}>{product.name}</option>
-        ))}
-    </select>
-        <label htmlFor="updateProductPrice">Price:</label>
-        <input
-            type="number"
-            id="updateProductPrice"
-            name="updateProductPrice"
-            value={selectedProductDetails.price}
-            required
-            min="0.01"
-            step="0.01"
-            onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, price: e.target.value })}
-        />
-        <label htmlFor="updateProductDescription">Description:</label>
-        <textarea
-            id="updateProductDescription"
-            name="updateProductDescription"
-            value={selectedProductDetails.description}
-            onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, description: e.target.value })}
-        />
-        <label htmlFor="updateProductInventory">Inventory:</label>
-        <input
-            type="number"
-            id="updateProductInventory"
-            name="updateProductInventory"
-            value={selectedProductDetails.inventory}
-            required
-            min="0"
-            step="1"
-            onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, inventory: e.target.value })}
-        />
-        <input type="submit" value="Update Product" />
-    </form>
-</div>
+                <h2 className="section-title">Update Product</h2>
+                <form onSubmit={handleUpdateProductSubmit}>
+                <label htmlFor="productSelection">Select Product:</label>
+                <select
+                    id="productSelection"
+                    value={updateProductId}
+                    onChange={(e) => {
+                        setupdateProductId(e.target.value);
+                        const selectedProduct = products.find(product => product.pid.toString() === e.target.value);
+                        if (selectedProduct) {
+                            setSelectedProductDetails({
+                                name: selectedProduct.name,
+                                price: selectedProduct.price,
+                                description: selectedProduct.description,
+                                inventory: selectedProduct.inventory,
+                            });                
+                        }
+                    }}
+                    
+                >
+                    <option value="">Select a Product</option>
+                    {products.map((product) => (
+                        <option key={product.pid} value={product.pid}>{product.name}</option>
+                    ))}
+                </select>
+                    <label htmlFor="updateProductPrice">Price:</label>
+                    <input
+                        type="number"
+                        id="updateProductPrice"
+                        name="updateProductPrice"
+                        value={selectedProductDetails.price}
+                        required
+                        min="0.01"
+                        step="0.01"
+                        onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, price: e.target.value })}
+                    />
+                    <label htmlFor="updateProductDescription">Description:</label>
+                    <textarea
+                        id="updateProductDescription"
+                        name="updateProductDescription"
+                        value={selectedProductDetails.description}
+                        onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, description: e.target.value })}
+                    />
+                    <label htmlFor="updateProductInventory">Inventory:</label>
+                    <input
+                        type="number"
+                        id="updateProductInventory"
+                        name="updateProductInventory"
+                        value={selectedProductDetails.inventory}
+                        required
+                        min="0"
+                        step="1"
+                        onChange={(e) => setSelectedProductDetails({ ...selectedProductDetails, inventory: e.target.value })}
+                    />
+                    <input type="submit" value="Update Product" />
+                </form>
+                </div>
 
                 </div>
+                )}
+                {currentPage === 'Orders' && (
+                <div className="grouped-section">
+                    <div>
+            <h1>Orders</h1>
+            {orders.length > 0 ? (
+                <table>
+                    <thead>
+                        <tr>
+                            <th>UUID</th>
+                            <th>Username</th>
+                            <th>Payment Status</th>
+                            <th>Product List</th>
+                            <th>Total Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {orders.map(order => (
+                            <tr key={order.UUID}>
+                                <td>{order.UUID}</td>
+                                <td>{order.username}</td>
+                                <td>{order.orderDetails ? 'Completed' : 'Pending'}</td>
+                                <td>
+                                    {order.orderDetails ? (
+                                        <ul>
+                                            {order.orderDetails.purchase_units[0].items.map((item, index) => (
+                                                <li key={index}>{`${item.name} (Quantity: ${item.quantity})`}</li>
+                                            ))}
+                                        </ul>
+                                    ) : 'N/A'}
+                                </td>
+                                <td>{order.orderDetails ? `$${order.totalAmount}` : 'N/A'}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            ) : (
+                <p>No orders found.</p>
+            )}
+        </div>
+                </div>
+                )}
             </div>
+            
         </div>
     );
 };

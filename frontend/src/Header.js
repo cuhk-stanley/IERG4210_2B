@@ -7,6 +7,7 @@ function Header() {
     const { cart, updateQuantity, removeFromCart, calculateTotal, checkoutCart } = useCart();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+    
 
     const handleChangePassword = async () => {
         navigate('/change-password');
@@ -20,6 +21,10 @@ function Header() {
 
     const handleAdminPanel = async () => {
         navigate('/admin');
+    };
+
+    const handleOrders = () => {
+        navigate('/orders');
     };
 
     const getWelcomeMessage = () => {
@@ -37,6 +42,7 @@ function Header() {
                         {user ? (
                             <>
                                 {user.adminFlag === 1 && ( <button onClick={handleAdminPanel} className="btn admin-panel-btn">Admin Panel</button> )}
+                                <button onClick={handleOrders} className="btn orders-btn">My Orders</button>
                                 <button onClick={handleLogout} className="btn log-out-btn">Logout</button>
                                 <button onClick={handleChangePassword} className="btn change-password-btn">Change Password</button>
                             </>

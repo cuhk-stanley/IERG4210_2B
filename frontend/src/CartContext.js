@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
+    const navigate = useNavigate();
     const [cart, setCart] = useState(() => {
         const storedCart = localStorage.getItem('cart');
         return storedCart ? JSON.parse(storedCart) : [];
@@ -44,37 +45,25 @@ export const CartProvider = ({ children }) => {
         return cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
     };
 
-
 const checkoutCart = async () => {
     const total = calculateTotal();
     const isConfirmed = window.confirm(`Confirm to checkout? Total price: $${total}`);
     if (!isConfirmed) {
         return;
     }
-
-    try {
-        const response = await fetch('https://secure.s18.ierg4210.ie.cuhk.edu.hk/api/checkout', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ products: cart }),
-        });
-
-        if (!response.ok) {
-            throw new Error('Checkout failed');
-        }
-
-        alert(await response.text());
-        setCart([]); // Clear the cart after successful checkout
-    } catch (error) {
-        alert(error.message);
-    }
+    if (total > 0)
+    navigate('/payment', { state: { total, cart } });
+    else
+    alert("Your cart is empty.")
 };
 
+const clearCart = () => {
+    setCart([]); // Clears the cart state
+    localStorage.setItem('cart', JSON.stringify([])); // Optionally clears the cart in localStorage as well
+};
 
     return (
-        <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, calculateTotal, checkoutCart }}>
+        <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, calculateTotal, checkoutCart, clearCart }}>
             {children}
         </CartContext.Provider>
     );

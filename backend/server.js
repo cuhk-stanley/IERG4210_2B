@@ -2,6 +2,7 @@ require('dotenv').config();
 
 
 const express = require('express');
+const router = express.Router();
 const multer = require('multer');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
@@ -12,7 +13,6 @@ const port = 8000;
 const saltRounds = 10;
 const cors = require('cors');
 //const dbPath = path.resolve(__dirname, './mydatabase.db');
-const User = require('./models/user');
 const session = require('express-session');
 const userRoutes = require('./routes/users');
 const jwt = require('jsonwebtoken');
@@ -20,7 +20,7 @@ const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const { body, validationResult, param } = require('express-validator');
 const corsOptions = {
-    origin: 'https://13.236.96.36',
+    origin: 'https://secure.s18.ierg4210.ie.cuhk.edu.hk/',
     credentials: true,
   };
 app.use(express.json());
@@ -33,8 +33,8 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none' // Consider 'none' if your frontend and backend are on different domains and using https
+        secure: true, // Set to true if you're using https
+        sameSite: 'lax' // Consider 'none' if your frontend and backend are on different domains and using https
     }
 }));
 
@@ -66,17 +66,17 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/get-nonce', (req, res) => {
     const nonce = crypto.randomBytes(16).toString('base64'); // Generate a nonce
-    req.session.nonce = nonce; // Store the nonce in the session
-    req.session.save(err => {
-        if (err) {
-          console.error('Session save error:', err);
-        }
-      });
-    res.json({ nonce }); // Send the nonce to the client
+
+    // Set a cookie directly with the nonce value
+    res.setHeader('Set-Cookie', `nonce=${nonce}; HttpOnly; Path=/; SameSite=Strict; Secure`);
+
+    // Respond with the nonce for client-side use if needed
+    res.json({ nonce });
 });
 
 
-// Server-side: Example endpoint to validate session
+
+// Endpoint to validate session
 app.get('/validate-session', (req, res) => {
     const token = req.cookies.auth; // Assuming 'auth' is your cookie name
     if (!token) {
@@ -96,7 +96,8 @@ app.get('/validate-session', (req, res) => {
 
 app.post('/change-password', async (req, res) => {
     const { userId, oldPassword, newPassword, nonce } = req.body;
-    if (!nonce || nonce !== req.session.nonce) {
+    const nonceFromCookie = req.cookies['nonce'];
+    if (!nonce || nonce !== nonceFromCookie) {
         return res.status(403).json({ message: 'Invalid nonce' });
     }
     if (!userId || !oldPassword || !newPassword) {
@@ -146,11 +147,12 @@ app.post('/logout', (req, res) => {
 });
 
 app.post('/login', async (req, res) => {
-    const { email, password, nonce } = req.body;
-    if (!nonce || nonce !== req.session.nonce) {
+    const { email, password, nonce: nonceFromBody } = req.body;
+    const nonceFromCookie = req.cookies['nonce']; // Assuming the nonce is stored in a cookie named 'nonce'
+    // Validate nonce
+    if (!nonceFromCookie || nonceFromBody !== nonceFromCookie) {
         return res.status(403).json({ message: 'Invalid nonce' });
-    }
-  
+    }  
     try {
         const queryFindUser = 'SELECT * FROM user WHERE email = ?';
         db.get(queryFindUser, [email], async (err, user) => {
@@ -178,9 +180,10 @@ app.post('/login', async (req, res) => {
             res.cookie('auth', token, {
                 httpOnly: true,
                 maxAge: 259200000,
-                sameSite: 'lax', // For development on HTTP
+                sameSite: 'none',
+		secure: true,
                 path: '/',
-                domain: 'localhost'
+
             });
             
   
@@ -260,7 +263,8 @@ app.get('/products', (req, res) => {
 app.delete('/delete-category/:catid', (req, res) => {
     const { catid } = req.params;
     const nonce = req.headers['x-csrf-token'];
-    if (!nonce || nonce !== req.session.nonce) {
+    const nonceFromCookie = req.cookies['nonce'];
+    if (!nonce || nonce !== nonceFromCookie) {
         return res.status(403).json({ message: 'Invalid or missing nonce' });
     }
     const deleteSql = 'DELETE FROM categories WHERE catid = ?';
@@ -282,7 +286,8 @@ app.delete('/delete-category/:catid', (req, res) => {
 app.delete('/delete-product/:productId', (req, res) => {
     const { productId } = req.params;
     const nonce = req.headers['x-csrf-token'];
-    if (!nonce || nonce !== req.session.nonce) {
+    const nonceFromCookie = req.cookies['nonce'];
+    if (!nonce || nonce !== nonceFromCookie) {
         return res.status(403).json({ message: 'Invalid or missing nonce' });
     }
     // First, get the product to retrieve the image path/filename
@@ -331,7 +336,8 @@ app.post('/add-category', upload.single('image'),
 ],
 (req, res) => {
     const { nonce } = req.body;
-    if (!nonce || nonce !== req.session.nonce) {
+    const nonceFromCookie = req.cookies['nonce'];
+    if (!nonce || nonce !== nonceFromCookie) {
         return res.status(403).json({ message: 'Invalid or missing nonce' });
     }
     const errors = validationResult(req);
@@ -375,7 +381,8 @@ app.post('/add-category', upload.single('image'),
 
 app.post('/update-category/:id', upload.single('image'), (req, res) => {
     const nonce = req.body.nonce;
-    if (!nonce || nonce !== req.session.nonce) {
+    const nonceFromCookie = req.cookies['nonce'];
+    if (!nonce || nonce !== nonceFromCookie) {
         return res.status(403).json({ message: 'Invalid nonce' });
     }
 
@@ -433,8 +440,8 @@ app.post('/update-category/:id', upload.single('image'), (req, res) => {
 // Endpoint to handle adding products
 app.post('/add-product', upload.single('image'), [
     body('nonce').custom((value, { req }) => {
-        // Validate the nonce
-        if (!value || value !== req.session.nonce) {
+        const nonceFromCookie = req.cookies['nonce'];
+        if (!value || value !== nonceFromCookie) {
             throw new Error('Invalid nonce');
         }
         return true;
@@ -487,7 +494,8 @@ app.put('/update-product/:productId', upload.single('image'),
 ],
 (req, res) => {
     const nonce = req.body.nonce;
-    if (!nonce || nonce !== req.session.nonce) {
+    const nonceFromCookie = req.cookies['nonce'];
+    if (!nonce || nonce !== nonceFromCookie) {
         return res.status(403).json({ message: 'Invalid nonce' });
     }
 
@@ -590,9 +598,97 @@ app.get('/product/:productId', (req, res) => {
     });
 });
 
-app.post('/checkout', async (req, res) => {
-    const { products } = req.body;
+function generateSalt() {
+    const crypto = require('crypto');
+    return crypto.randomBytes(16).toString('hex'); // Generates a 32-character hex string
+}
+function generateDigest(stringToHash) {
+    const crypto = require('crypto');
+    return crypto.createHash('sha256').update(stringToHash).digest('hex'); // Returns a SHA-256 hash in hex format
+}
+function generateUUID() {
+    const { v4: uuidv4 } = require('uuid');
+    return uuidv4(); // Returns a UUID string
+}
 
+function insertOrder(uuid, username, digest, salt) {
+    const insertQuery = `INSERT INTO orders (UUID, username, digest, salt) VALUES (?, ?, ?, ?)`;
+
+    return new Promise((resolve, reject) => {
+        db.run(insertQuery, [uuid, username, digest, salt], function(err) {
+            if (err) {
+                console.error("Error inserting order:", err.message);
+                reject(err);
+                return;
+            }
+            resolve(this.lastID); // Resolves with the last inserted row ID
+        });
+    });
+}
+
+
+function calculateTotal(cartItems) {
+    let total = 0;
+    for (const item of cartItems) {
+        total += item.price * item.quantity; // Simplified total calculation
+    }
+    return total;
+}
+
+
+
+app.post('/my-server/create-order', async (req, res) => {
+    const { cartItems, username } = req.body;
+    const currencyCode = 'USD';
+    const merchantEmail = 'merchant@example.com';
+
+    try {
+        const total = calculateTotal(cartItems); // Assuming this function exists
+        const salt = generateSalt();
+        const stringToHash = cartItems.map(item => `${item.pid}:${item.quantity}:${item.price}`).join('|') + `|${total}|${currencyCode}|${merchantEmail}|${salt}`;
+        const digest = generateDigest(stringToHash);
+        const uuid = generateUUID();
+        await insertOrder(uuid, username, digest, salt);
+        const orderDetails = {
+            intent: 'CAPTURE',
+            purchase_units: [{
+                amount: {
+                    currency_code: currencyCode,
+                    value: total,
+                    breakdown: {
+                        item_total: { currency_code: currencyCode, value: total },
+                    },
+                },
+                custom_id: digest,
+                items: cartItems.map(item => ({
+                    name: item.name,
+                    unit_amount: { currency_code: currencyCode, value: item.price.toString() },
+                    quantity: item.quantity.toString(),
+                })),
+            }],
+            invoice_id: uuid,
+        };
+
+        res.status(200).json({ uuid, orderDetails });
+    } catch (error) {
+        res.status(500).send(`Error generating order details: ${error.message}`);
+    }
+});
+
+
+
+
+app.post('/my-server/save-order', async (req, res) => {
+    const { orderID, details, products } = req.body;
+    // Step 1: Verify the payment with PayPal
+    // You would typically use the PayPal SDK here to verify the orderID and payment details with PayPal
+    const isPaymentVerified = true; // This should be the result of your verification logic
+
+    if (!isPaymentVerified) {
+        return res.status(400).send('Payment verification failed');
+    }
+
+    // Step 2: Update Inventory
     const updateInventory = (product) => {
         return new Promise((resolve, reject) => {
             const updateInventorySql = `UPDATE products SET inventory = inventory - ? WHERE pid = ? AND inventory >= ?`;
@@ -607,32 +703,124 @@ app.post('/checkout', async (req, res) => {
             });
         });
     };
-    
 
-    db.serialize(() => {
+    const updateOrderDetails = () => new Promise((resolve, reject) => {
+        const updateOrderDetailsSql = `UPDATE orders SET orderDetails = ? WHERE UUID = ?`;
+        db.run(updateOrderDetailsSql, [JSON.stringify(details), orderID], function(err) {
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve();
+        });
+    });
+
+    db.serialize(async () => {
         db.run('BEGIN TRANSACTION');
 
-        Promise.all(products.map(product => updateInventory(product)))
-            .then(() => {
-                db.run('COMMIT', (err) => {
-                    if (err) {
-                        throw err;
-                    }
-                    res.send('Checkout successful');
-                });
-            })
-            .catch((error) => {
-                db.run('ROLLBACK', (rollbackErr) => {
-                    if (rollbackErr) {
-                        console.error("Rollback error:", rollbackErr);
-                    }
-                    console.error("Checkout error:", error);
-                    res.status(500).send(`Checkout failed: ${error.message}`);
-                });
+        try {
+            // Step 1: Update inventory for each product
+            for (const product of products) {
+                await updateInventory(product);
+            }
+
+            // Step 2: Update the order details in the "orders" table
+            await updateOrderDetails();
+
+            // If all updates are successful, commit the transaction
+            db.run('COMMIT', () => {
+                res.send('Payment Successful');
             });
+        } catch (error) {
+            // If there's an error, rollback the transaction
+            db.run('ROLLBACK', () => {
+                console.error("Error during order processing:", error);
+                res.status(500).send(`Order processing failed: ${error.message}`);
+            });
+        }
     });
 });
 
+function deleteOrder(uuid) {
+    return new Promise((resolve, reject) => {
+        const deleteQuery = `DELETE FROM orders WHERE UUID = ?`;
+
+        db.run(deleteQuery, [uuid], function(err) {
+            if (err) {
+                console.error("Error deleting order:", err.message);
+                reject(err);
+                return;
+            }
+            if (this.changes === 0) {
+                // No rows were deleted, indicating the UUID didn't match any records
+                reject(new Error(`No order found with UUID: ${uuid}`));
+                return;
+            }
+            console.log(`Order with UUID: ${uuid} deleted successfully.`);
+            resolve();
+        });
+    });
+}
+
+
+app.post('/my-server/cancel-order', async (req, res) => {
+    const { uuid } = req.body;
+    try {
+        await deleteOrder(uuid);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
+app.post('/get-orders', (req, res) => {
+    const userEmail = req.body.email; // Get the email from the request body
+
+    // Server-side validation for userEmail to ensure it's a valid email could be added here
+
+    const query = `SELECT UUID, username, orderDetails FROM orders WHERE username = ?`;
+
+    db.all(query, [userEmail], (err, rows) => {
+        if (err) {
+            console.error('Database error:', err.message);
+            return res.status(500).send('Error fetching orders');
+        }
+        res.json(rows);
+    });
+});
+
+
+
+app.get('/api/orders', (req, res) => {
+    const query = `SELECT UUID, username, orderDetails FROM orders`;
+
+    db.all(query, [], (err, rows) => {
+        if (err) {
+            console.error('Error fetching orders', err.message);
+            res.status(500).send('Error fetching order data');
+            return;
+        }
+
+        // Process each row to parse the orderDetails JSON string
+        const orders = rows.map(row => ({
+            UUID: row.UUID,
+            username: row.username,
+            orderDetails: JSON.parse(row.orderDetails)
+        }));
+
+        // Calculate total amount and include payment status for each order
+        orders.forEach(order => {
+            // Calculate total amount from orderDetails
+            const totalAmount = order.orderDetails.purchase_units.reduce((total, unit) => {
+                return total + parseFloat(unit.amount.value);
+            }, 0);
+
+            order.totalAmount = totalAmount.toFixed(2);
+        });
+
+        res.json(orders);
+    });
+});
 
 
 

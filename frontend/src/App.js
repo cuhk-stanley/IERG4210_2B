@@ -12,23 +12,30 @@ import ChangePassword from './ChangePassword';
 import Login from './Login';
 import { CartProvider } from './CartContext';
 import ProtectedRoute from './ProtectedRoute';
+import PaymentPage from './PaymentPage';
+import OrdersPage from './OrdersPage';
 
 import './App.css';
 
 function App() {
   return (
-    <AuthProvider>
     <Router>
+    <CartProvider>
+    <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} /> {/* Make Login the default route */}
         <Route path="/" element={<MainLayout><MainContent /></MainLayout>} /> {/* Use /home for main content */}
         <Route path="/:categoryName" element={<MainLayout><CategoryPage /></MainLayout>} />
         <Route path="/product/:productId" element={<MainLayout><ProductPage /></MainLayout>} />
+        <Route path="orders" element={<MainLayout><OrdersPage /></MainLayout>} />
         <Route path="/admin" element={ <ProtectedRoute> <AdminPanel /> </ProtectedRoute>} />
         <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/payment" element={<PaymentPage />} />
       </Routes>
-    </Router>
+    
     </AuthProvider>
+    </CartProvider>
+    </Router>
   );
 }
 

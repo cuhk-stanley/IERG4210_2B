@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect  } from 'react';
+import { useCart } from './CartContext';
 
 const AuthContext = createContext();
 
@@ -8,6 +9,7 @@ export function useAuth() {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const { clearCart } = useCart();
 
 
   const rehydrateUser = async () => {
@@ -16,11 +18,7 @@ export const AuthProvider = ({ children }) => {
     });
     if (response.ok) {
       const data = await response.json();
-      if (data.user && data.user.adminFlag === 1) {
         setUser(data.user);
-      } else {
-        setUser(null);
-      }
     } else {
       console.error('Failed to rehydrate user session');
       setUser(null);
@@ -61,7 +59,8 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (response.ok) {
-        setUser(null); // Clear user state upon successful logout
+        setUser(null);
+        clearCart();
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message);
